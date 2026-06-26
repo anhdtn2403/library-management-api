@@ -1,0 +1,6 @@
+export enum LoanStatus {
+    BORROWING = 'BORROWING',
+    RETURNED = 'RETURNED',
+    OVERDUE = 'OVERDUE',
+    CANCELLED = 'CANCELLED'
+}
