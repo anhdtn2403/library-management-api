@@ -6,6 +6,7 @@ import { Book } from './entities/book.entity';
 import { User } from './entities/user.entity';
 import { Loan } from './entities/loan.entity';
 import { LoanDetail } from './entities/loan-detail.entity';
+import { AuthsModule } from './modules/auths/auths.module';
 
 @Module({
   imports: [
@@ -27,7 +28,8 @@ import { LoanDetail } from './entities/loan-detail.entity';
         synchronize: false,
       })
     }),
-    BooksModule
+    BooksModule,
+    AuthsModule
   ]
 })
 export class AppModule { }
