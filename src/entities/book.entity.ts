@@ -9,8 +9,8 @@ export class Book {
     @Column({ type: 'varchar', length: 255 })
     title!: string;
 
-    @Column({ type: 'varchar', length: 50, nullable: true })
-    isbn?: number;
+    @Column({ type: 'varchar', length: 50, nullable: true, unique: true })
+    isbn?: string;
 
     @Column({ type: 'varchar', length: 255, nullable: true })
     author?: string;
