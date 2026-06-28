@@ -7,6 +7,8 @@ import { User } from './entities/user.entity';
 import { Loan } from './entities/loan.entity';
 import { LoanDetail } from './entities/loan-detail.entity';
 import { AuthsModule } from './modules/auths/auths.module';
+import { RolePermission } from './entities/role-permission.entity';
+import { RolePermissionsModule } from './modules/role-permissions/role-permissions.module';
 
 @Module({
   imports: [
@@ -23,13 +25,14 @@ import { AuthsModule } from './modules/auths/auths.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
 
-        entities: [Book, User, Loan, LoanDetail],
+        entities: [Book, User, Loan, LoanDetail, RolePermission],
 
         synchronize: false,
       })
     }),
     BooksModule,
-    AuthsModule
+    AuthsModule,
+    RolePermissionsModule
   ]
 })
 export class AppModule { }

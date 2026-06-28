@@ -4,6 +4,7 @@ import { LoanDetail } from '../../entities/loan-detail.entity';
 import { Loan } from '../../entities/loan.entity';
 import { User } from '../../entities/user.entity';
 import { DataSource } from "typeorm";
+import { RolePermission } from '../../entities/role-permission.entity';
 
 export const AppDataSource = new DataSource({
     type: 'postgres',
@@ -13,7 +14,7 @@ export const AppDataSource = new DataSource({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
 
-    entities: [Book, User, Loan, LoanDetail],
+    entities: [Book, User, Loan, LoanDetail, RolePermission],
 
     migrations: ['src/migrations/*.ts'],
     synchronize: false,
