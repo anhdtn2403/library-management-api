@@ -18,7 +18,6 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
             })),
         );
     }
-
     private getDefaultMessage(statusCode: number): string {
         switch (statusCode) {
             case 200:

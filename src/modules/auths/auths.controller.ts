@@ -1,4 +1,4 @@
-import { Body, Controller, Post } from '@nestjs/common';
+import { Body, Controller, HttpCode, Post } from '@nestjs/common';
 import { RegisterDto } from './dtos/register.dto';
 import { LoginDto } from './dtos/login.dto';
 import { AuthsService } from './auths.service';
@@ -16,6 +16,7 @@ export class AuthsController {
     }
 
     @Post('login')
+    @HttpCode(200)
     login(
         @Body() dto: LoginDto
     ) {
@@ -23,6 +24,7 @@ export class AuthsController {
     }
 
     @Post('refresh')
+    @HttpCode(200)
     refresh(
         @Body() dto: RefreshTokenDto,
     ) {

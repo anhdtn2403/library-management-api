@@ -5,8 +5,9 @@ import { UpdateBookDto } from './dtos/update-book.dto';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { Roles } from 'src/common/decorators/roles.decorator';
 import { UserRole } from 'src/common/enums/user-role.enum';
+import { RolesGuard } from 'src/common/guards/roles.guard';
 
-@UseGuards(JwtAuthGuard) //Toàn bộ API /books đều yêu cầu đăng nhập.
+@UseGuards(JwtAuthGuard, RolesGuard) //Toàn bộ API /books đều yêu cầu đăng nhập.
 @Controller('books')
 export class BooksController {
     constructor(
