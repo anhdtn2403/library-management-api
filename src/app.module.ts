@@ -9,6 +9,7 @@ import { LoanDetail } from './entities/loan-detail.entity';
 import { AuthsModule } from './modules/auths/auths.module';
 import { RolePermission } from './entities/role-permission.entity';
 import { RolePermissionsModule } from './modules/role-permissions/role-permissions.module';
+import { LoansModule } from './modules/loans/loans.module';
 
 @Module({
   imports: [
@@ -32,7 +33,8 @@ import { RolePermissionsModule } from './modules/role-permissions/role-permissio
     }),
     BooksModule,
     AuthsModule,
-    RolePermissionsModule
+    RolePermissionsModule,
+    LoansModule
   ]
 })
 export class AppModule { }
