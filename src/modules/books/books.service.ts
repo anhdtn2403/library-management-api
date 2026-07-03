@@ -15,7 +15,6 @@ export class BooksService {
         private readonly bookRepository: Repository<Book>
     ) { }
 
-    findAll() {
     async findAll(query: GetBooksQueryDto) {
         const pageNumber = query.page || 1;
         const pageSize = query.pageSize || 10;
