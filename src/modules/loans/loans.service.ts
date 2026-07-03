@@ -4,19 +4,20 @@ import { Book } from 'src/entities/book.entity';
 import { LoanDetail } from 'src/entities/loan-detail.entity';
 import { Loan } from 'src/entities/loan.entity';
 import { User } from 'src/entities/user.entity';
-import { DataSource, Repository } from 'typeorm';
+import { DataSource, LessThan, Repository } from 'typeorm';
 import { CreateLoanDto } from './dtos/create-loan.dto';
 import { LoanStatus } from 'src/common/enums/loan-status.enum';
 import { UpdateLoanDto } from './dtos/update-loan.dto';
 import { UpdateLoanStatusDto } from './dtos/update-loan-status-dto';
+import { LmsNotificationsService } from '../lms-notifications/lms-notifications.service';
 
 @Injectable()
 export class LoansService {
     constructor(
         @InjectRepository(Loan)
         private readonly loanRepository: Repository<Loan>,
-
         private readonly dataSource: DataSource,
+        private readonly lmsNotificationsService: LmsNotificationsService,
     ) { }
 
     findAll() {
@@ -204,5 +205,27 @@ export class LoansService {
 
             return manager.save(Loan, loan);
         });
+    }
+
+    async markOverdueLoans() {
+        const now = new Date();
+        const loans: Loan[] = await this.loanRepository.find({
+            where: {
+                status: LoanStatus.BORROWING,
+                due_date: LessThan(now),
+            },
+        });
+        for (const loan of loans) {
+            loan.status = LoanStatus.OVERDUE;
+            await this.loanRepository.save(loan);
+            await this.lmsNotificationsService.createOverdueNotification(
+                loan.user_id,
+                loan.id,
+            );
+        }
+        return {
+            total: loans.length,
+            message: 'Overdue loans checked successfully',
+        };
     }
 }

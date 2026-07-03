@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Loan } from "./loan.entity";
 import { UserRole } from "../common/enums/user-role.enum";
+import { LmsNotification } from "./lms-notification.entity";
 
 @Entity('users')
 export class User {
@@ -43,4 +44,10 @@ export class User {
         loan => loan.user
     )
     loans!: Loan[];
+
+    @OneToMany(
+        () => LmsNotification,
+        notification => notification.user
+    )
+    notifications!: Notification[];
 }

@@ -10,12 +10,16 @@ import { AuthsModule } from './modules/auths/auths.module';
 import { RolePermission } from './entities/role-permission.entity';
 import { RolePermissionsModule } from './modules/role-permissions/role-permissions.module';
 import { LoansModule } from './modules/loans/loans.module';
+import { LmsNotification } from './entities/lms-notification.entity';
+import { ScheduleModule } from '@nestjs/schedule';
+import { LmsNotificationsModule } from './modules/lms-notifications/lms-notifications.module';
 
 @Module({
   imports: [
     ConfigModule.forRoot({
       isGlobal: true
     }),
+    ScheduleModule.forRoot(),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({
@@ -26,7 +30,7 @@ import { LoansModule } from './modules/loans/loans.module';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
 
-        entities: [Book, User, Loan, LoanDetail, RolePermission],
+        entities: [Book, User, Loan, LoanDetail, RolePermission, LmsNotification],
 
         synchronize: false,
       })
@@ -34,7 +38,8 @@ import { LoansModule } from './modules/loans/loans.module';
     BooksModule,
     AuthsModule,
     RolePermissionsModule,
-    LoansModule
+    LoansModule,
+    LmsNotificationsModule
   ]
 })
 export class AppModule { }
