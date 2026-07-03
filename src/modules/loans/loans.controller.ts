@@ -1,4 +1,4 @@
-import { Body, Controller, Get, Param, Patch, Post, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from 'src/common/guards/permissions.guard';
 import { LoansService } from './loans.service';
@@ -7,6 +7,7 @@ import { RequirePermissions } from 'src/common/decorators/permission.decorator';
 import { CreateLoanDto } from './dtos/create-loan.dto';
 import { UpdateLoanDto } from './dtos/update-loan.dto';
 import { UpdateLoanStatusDto } from './dtos/update-loan-status-dto';
+import { GetLoansQueryDto } from './dtos/get-loans-query.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('loans')
@@ -21,8 +22,8 @@ export class LoansController {
 
     @Get()
     @RequirePermissions(UserPermission.LOAN_VIEW)
-    findAll() {
-        return this.loansService.findAll();
+    findAll(@Query() query: GetLoansQueryDto) {
+        return this.loansService.findAll(query);
     }
 
     @Get(':id')

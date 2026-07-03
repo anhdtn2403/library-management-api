@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationType } from 'src/common/enums/notification-type.enum';
 import { LmsNotification } from 'src/entities/lms-notification.entity';
-import { In, Repository } from 'typeorm';
+import { EntityManager, In, Repository } from 'typeorm';
 
 @Injectable()
 // This decorator makes the service injectable into other components like controllers or other services. 
@@ -13,15 +13,18 @@ export class LmsNotificationsService {
         private readonly repo: Repository<LmsNotification>
     ) { }
 
-    createOverdueNotification(userId: number, loanId: number) {
-        const notification = this.repo.create({
+    createOverdueNotification(userId: number, loanId: number, manager?: EntityManager) {
+        const repository = manager
+            ? manager.getRepository(LmsNotification)
+            : this.repo;
+        const notification = repository.create({
             user_id: userId,
             title: 'Phiếu mượn quá hạn',
             message: `Phiếu mượn #${loanId} của bạn đã quá hạn trả sách.`,
             type: NotificationType.LOAN_OVERDUE,
             is_read: false,
         });
-        return this.repo.save(notification);
+        return repository.save(notification);
     }
 
     findByUser(userId: number) {

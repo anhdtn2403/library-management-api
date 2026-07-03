@@ -32,7 +32,7 @@ export class AuthsService {
             full_name: dto.full_name,
             email: dto.email,
             password_hash: hashedPassword,
-            role: UserRole.MEMBER
+            role: dto.role
         });
 
         const savedUser = await this.userRepository.save(user);

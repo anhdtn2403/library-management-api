@@ -31,7 +31,7 @@ export class Book {
     total_quantity!: number;
 
     @Column({ default: 0 })
-    available_quantity!: number;
+    borrowed_quantity!: number;
 
     @Column({ default: true })
     is_active!: boolean;

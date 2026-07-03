@@ -34,13 +34,4 @@ export class CreateBookDto {
     @IsInt()
     @Min(0)
     total_quantity?: number;
-
-    @IsOptional()
-    @IsInt()
-    @Min(0)
-    available_quantity?: number;
-
-    @IsOptional()
-    @IsBoolean()
-    is_active?: boolean;
 }
