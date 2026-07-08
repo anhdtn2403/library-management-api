@@ -13,6 +13,8 @@ import { LoansModule } from './modules/loans/loans.module';
 import { LmsNotification } from './entities/lms-notification.entity';
 import { ScheduleModule } from '@nestjs/schedule';
 import { LmsNotificationsModule } from './modules/lms-notifications/lms-notifications.module';
+import { SubCategory } from './entities/sub-category.entity';
+import { Category } from './entities/category.entity';
 
 @Module({
   imports: [
@@ -30,7 +32,7 @@ import { LmsNotificationsModule } from './modules/lms-notifications/lms-notifica
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
 
-        entities: [Book, User, Loan, LoanDetail, RolePermission, LmsNotification],
+        entities: [Book, User, Loan, LoanDetail, RolePermission, LmsNotification, Category, SubCategory],
 
         synchronize: false,
       })

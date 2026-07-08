@@ -5,11 +5,12 @@ import {
     JoinColumn,
     ManyToOne,
     PrimaryGeneratedColumn,
+    UpdateDateColumn,
 } from 'typeorm';
 import { User } from './user.entity';
 import { NotificationType } from '../common/enums/notification-type.enum';
 
-@Entity('lms_ notifications')
+@Entity('lms_notifications')
 export class LmsNotification {
     @PrimaryGeneratedColumn()
     id!: number;
@@ -34,6 +35,9 @@ export class LmsNotification {
 
     @CreateDateColumn()
     created_at!: Date;
+
+    @UpdateDateColumn()
+    updated_at!: Date;
 
     @ManyToOne(
         () => User,

@@ -6,6 +6,8 @@ import { User } from '../../entities/user.entity';
 import { DataSource } from "typeorm";
 import { RolePermission } from '../../entities/role-permission.entity';
 import { LmsNotification } from '../../entities/lms-notification.entity';
+import { SubCategory } from '../../entities/sub-category.entity';
+import { Category } from '../../entities/category.entity';
 
 export const AppDataSource = new DataSource({
     type: 'postgres',
@@ -15,7 +17,7 @@ export const AppDataSource = new DataSource({
     password: process.env.DB_PASSWORD,
     database: process.env.DB_DATABASE,
 
-    entities: [Book, User, Loan, LoanDetail, RolePermission, LmsNotification],
+    entities: [Book, User, Loan, LoanDetail, RolePermission, LmsNotification, Category, SubCategory],
 
     migrations: ['src/migrations/*.ts'],
     synchronize: false,
