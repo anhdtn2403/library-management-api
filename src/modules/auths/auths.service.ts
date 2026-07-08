@@ -32,7 +32,7 @@ export class AuthsService {
             full_name: dto.full_name,
             email: dto.email,
             password_hash: hashedPassword,
-            role: dto.role
+            role: UserRole.MEMBER, // Mặc định role là MEMBER, không cho user tự chọn role
         });
 
         const savedUser = await this.userRepository.save(user);

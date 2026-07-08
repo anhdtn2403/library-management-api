@@ -9,8 +9,7 @@ export enum LoanStatus {
 export enum LoanDetailStatus {
     PENDING = 'PENDING', // Member vừa tạo phiếu, backend mới lưu yêu cầu mượn.
     BORROWING = 'BORROWING', // Khách đã thanh toán phí mượn, sách đã được giao.
-    RETURNED = 'RETURNED', // sách đã trả
-    OVERDUE = 'OVERDUE', // sách quá hạn, chưa trả
-    LOST = 'LOST', // sách bị mất
+    OVERDUE = 'OVERDUE',
+    RETURNED = 'RETURNED', // Member đã bàn giao sách cho thư viện (bao gồm trả bình thường hoặc mất/hư hỏng đã được xử lý)
     CANCELLED = 'CANCELLED', // Yêu cầu mượn bị hủy.
 }

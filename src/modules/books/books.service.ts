@@ -20,6 +20,8 @@ export class BooksService {
         const pageSize = query.pageSize || 10;
         const qb = this.bookRepository
             .createQueryBuilder('book') // Tạo một query builder cho entity Book, đặt alias là 'book'
+            .leftJoinAndSelect('book.sub_category', 'subCategory')
+            .leftJoinAndSelect('subCategory.category', 'category')
             .select([
                 'book.id',
                 'book.title',
@@ -31,6 +33,12 @@ export class BooksService {
                 'book.total_quantity',
                 'book.borrowed_quantity',
                 'book.is_active',
+
+                'subCategory.id',
+                'subCategory.name',
+
+                'category.id',
+                'category.name',
             ]);
 
         if (query.keyword) {
@@ -55,6 +63,16 @@ export class BooksService {
         if (query.available === false) {
             qb.andWhere('book.total_quantity - book.borrowed_quantity = 0');
         }
+        if (query.sub_category_id) {
+            qb.andWhere('book.sub_category_id = :subCategoryId', {
+                subCategoryId: query.sub_category_id,
+            });
+        }
+        if (query.category_id) {
+            qb.andWhere('subCategory.category_id = :categoryId', {
+                categoryId: query.category_id,
+            });
+        }
         qb.orderBy('book.id', 'DESC');
         qb.skip((pageNumber - 1) * pageSize);
         qb.take(pageSize);
@@ -69,8 +87,13 @@ export class BooksService {
     }
 
     async findOne(id: number) {
-        const book = await this.bookRepository.findOneBy({
-            id,
+        const book = await this.bookRepository.findOne({
+            where: { id },
+            relations: {
+                sub_category: {
+                    category: true,
+                },
+            },
         });
         if (!book) {
             throw new NotFoundException('Book not found');

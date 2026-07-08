@@ -1,24 +1,17 @@
-import { Body, Controller, Get, Param, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Get, Param, ParseIntPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { JwtAuthGuard } from 'src/common/guards/jwt-auth.guard';
 import { PermissionsGuard } from 'src/common/guards/permissions.guard';
 import { LoansService } from './loans.service';
 import { UserPermission } from 'src/common/enums/user-permission.enum';
 import { RequirePermissions } from 'src/common/decorators/permission.decorator';
 import { CreateLoanDto } from './dtos/create-loan.dto';
-import { UpdateLoanDto } from './dtos/update-loan.dto';
-import { UpdateLoanStatusDto } from './dtos/update-loan-status-dto';
 import { GetLoansQueryDto } from './dtos/get-loans-query.dto';
+import { ReturnLoanDetailDto } from './dtos/return-loan-detail.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('loans')
 export class LoansController {
     constructor(private readonly loansService: LoansService) { }
-
-    @Post()
-    @RequirePermissions(UserPermission.LOAN_CREATE)
-    create(@Body() dto: CreateLoanDto) {
-        return this.loansService.create(dto);
-    }
 
     @Get()
     @RequirePermissions(UserPermission.LOAN_VIEW)
@@ -32,18 +25,36 @@ export class LoansController {
         return this.loansService.findOne(Number(id));
     }
 
-    @Patch(':id')
-    @RequirePermissions(UserPermission.LOAN_UPDATE)
-    update(@Param('id') id: string, @Body() dto: UpdateLoanDto) {
-        return this.loansService.update(Number(id), dto);
+    @Post()
+    @RequirePermissions(UserPermission.LOAN_CREATE)
+    create(@Body() dto: CreateLoanDto) {
+        return this.loansService.create(dto);
     }
 
-    @Patch(':id/status')
-    @RequirePermissions(UserPermission.LOAN_UPDATE_STATUS)
-    updateStatus(
-        @Param('id') id: string,
-        @Body() dto: UpdateLoanStatusDto,
+    @Patch(':id/status-to-confirm')
+    @RequirePermissions(UserPermission.LOAN_CONFIRM)
+    confirmLoan(@Param('id') id: string) {
+        return this.loansService.confirmLoan(Number(id));
+    }
+
+    @Patch(':id/status-to-borrowing')
+    @RequirePermissions(UserPermission.LOAN_BORROWING)
+    payAndBorrow(@Param('id') id: string) {
+        return this.loansService.payAndBorrow(Number(id));
+    }
+
+    @Patch('details/:detailId/status-to-returned')
+    @RequirePermissions(UserPermission.LOAN_DETAIL_RETURN)
+    returnLoanDetail(
+        @Param('detailId') detailId: string,
+        @Body() dto: ReturnLoanDetailDto,
     ) {
-        return this.loansService.updateStatus(Number(id), dto);
+        return this.loansService.returnLoanDetail(Number(detailId), dto);
+    }
+
+    @Patch(':id/cancel')
+    @RequirePermissions(UserPermission.LOAN_CANCEL)
+    cancelLoan(@Param('id') id: number) {
+        return this.loansService.cancelLoan(Number(id));
     }
 }

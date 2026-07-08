@@ -6,9 +6,6 @@ export class CreateLoanDto {
     @IsInt()
     user_id!: number;
 
-    @IsDateString()
-    due_date!: string;
-
     @IsArray()
     @ArrayMinSize(1)
     @ValidateNested({ each: true })
@@ -23,4 +20,8 @@ class CreateLoanItemDto {
     @IsInt()
     @Min(1)
     quantity!: number;
+
+    @IsInt()
+    @Min(1)
+    borrow_days!: number;
 }

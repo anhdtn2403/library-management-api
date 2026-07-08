@@ -15,6 +15,8 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { LmsNotificationsModule } from './modules/lms-notifications/lms-notifications.module';
 import { SubCategory } from './entities/sub-category.entity';
 import { Category } from './entities/category.entity';
+import { CategoriesModule } from './modules/categories/categories.module';
+import { SubCategoriesModule } from './modules/sub-categories/sub-categories.module';
 
 @Module({
   imports: [
@@ -32,8 +34,15 @@ import { Category } from './entities/category.entity';
         password: config.get<string>('DB_PASSWORD'),
         database: config.get<string>('DB_DATABASE'),
 
-        entities: [Book, User, Loan, LoanDetail, RolePermission, LmsNotification, Category, SubCategory],
-
+        entities: [
+          Book,
+          User,
+          Loan,
+          LoanDetail,
+          RolePermission,
+          LmsNotification,
+          Category,
+          SubCategory],
         synchronize: false,
       })
     }),
@@ -41,7 +50,9 @@ import { Category } from './entities/category.entity';
     AuthsModule,
     RolePermissionsModule,
     LoansModule,
-    LmsNotificationsModule
+    LmsNotificationsModule,
+    CategoriesModule,
+    SubCategoriesModule
   ]
 })
 export class AppModule { }

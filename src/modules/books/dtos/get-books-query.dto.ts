@@ -30,6 +30,16 @@ export class GetBooksQueryDto {
     @IsOptional()
     @Type(() => Number)
     @IsInt()
+    category_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
+    sub_category_id?: number;
+
+    @IsOptional()
+    @Type(() => Number)
+    @IsInt()
     @Min(1)
     page: number = 1;
 
