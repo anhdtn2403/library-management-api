@@ -3,9 +3,10 @@ import { CategoriesController } from './categories.controller';
 import { CategoriesService } from './categories.service';
 import { Category } from 'src/entities/category.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
+import { RolePermission } from 'src/entities/role-permission.entity';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Category])],
+  imports: [TypeOrmModule.forFeature([Category, RolePermission])],
   controllers: [CategoriesController],
   providers: [CategoriesService]
 })

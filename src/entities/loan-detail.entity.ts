@@ -43,8 +43,11 @@ export class LoanDetail {
     @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
     fine_amount?: number; // tiền phạt do trả trễ = book_fine_per_day × quantity × days_late
 
+    @Column({ nullable: true })
+    lost_quantity?: number;
+
     @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
-    lost_fee?: number; // tiền đền nếu mất sách = book_replacement_cost × quantity_lost
+    lost_fee?: number; // tiền đền nếu mất sách = book_replacement_cost × lost_quantity
 
     @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
     deposit_refund_amount?: number; // = max(deposit_amount - fine_amount - lost_fee, 0)

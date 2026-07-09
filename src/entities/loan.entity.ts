@@ -31,6 +31,9 @@ export class Loan {
     @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
     total_extra_payment?: number; // = max(total_fine + total_lost_fee - total_deposit, 0)
 
+    @Column({ type: 'varchar', length: 500, nullable: true })
+    cancelled_reason?: string;
+
     @CreateDateColumn()
     created_at!: Date;
 

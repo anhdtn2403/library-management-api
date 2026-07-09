@@ -7,6 +7,7 @@ import { RequirePermissions } from 'src/common/decorators/permission.decorator';
 import { CreateLoanDto } from './dtos/create-loan.dto';
 import { GetLoansQueryDto } from './dtos/get-loans-query.dto';
 import { ReturnLoanDetailDto } from './dtos/return-loan-detail.dto';
+import { CancelLoanDto } from './dtos/cancel-loan.dto';
 
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 @Controller('loans')
@@ -54,7 +55,7 @@ export class LoansController {
 
     @Patch(':id/cancel')
     @RequirePermissions(UserPermission.LOAN_CANCEL)
-    cancelLoan(@Param('id') id: number) {
-        return this.loansService.cancelLoan(Number(id));
+    cancelLoan(@Param('id') id: number, @Body() dto: CancelLoanDto) {
+        return this.loansService.cancelLoan(Number(id), dto);
     }
 }

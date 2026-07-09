@@ -10,6 +10,7 @@ import { LoanDetailStatus, LoanStatus } from 'src/common/enums/loan-status.enum'
 import { LmsNotificationsService } from '../lms-notifications/lms-notifications.service';
 import { GetLoansQueryDto } from './dtos/get-loans-query.dto';
 import { ReturnLoanDetailDto } from './dtos/return-loan-detail.dto';
+import { CancelLoanDto } from './dtos/cancel-loan.dto';
 
 @Injectable()
 export class LoansService {
@@ -36,6 +37,7 @@ export class LoansService {
                 'loan.total_initial_payment',
                 'loan.total_deposit_refund',
                 'loan.total_extra_payment',
+                'loan.cancelled_reason',
 
                 'user.id',
                 'user.full_name',
@@ -50,6 +52,7 @@ export class LoansService {
                 'detail.deposit_amount',
                 'detail.rental_fee',
                 'detail.fine_amount',
+                'detail.lost_quantity',
                 'detail.lost_fee',
                 'detail.deposit_refund_amount',
                 'detail.extra_payment_amount',
@@ -66,6 +69,22 @@ export class LoansService {
             });
         }
 
+        if (query.user_id) {
+            qb.andWhere('loan.user_id = :user_id', {
+                user_id: query.user_id,
+            });
+        }
+
+        if (query.keyword) {
+            qb.andWhere(
+                `(user.full_name ILIKE :keyword 
+                    OR user.email ILIKE :keyword 
+                    OR user.username ILIKE :keyword)`,
+                {
+                    keyword: `%${query.keyword}%`,
+                },
+            );
+        }
         qb.orderBy('loan.id', 'DESC');
 
         qb.skip((pageNumber - 1) * pageSize);
@@ -165,7 +184,18 @@ export class LoansService {
                 loanDetails.push(loanDetail);
             }
             await manager.save(LoanDetail, loanDetails);
-            return this.findOne(savedLoan.id);
+            const createdLoan = await manager.findOne(Loan, {
+                where: {
+                    id: savedLoan.id,
+                },
+                relations: {
+                    user: true,
+                    loan_details: {
+                        book: true,
+                    },
+                },
+            });
+            return this.mapLoanResponse(createdLoan!);
         });
     }
 
@@ -192,7 +222,6 @@ export class LoansService {
                 await manager.save(LoanDetail, detail);
             }
             await manager.save(Loan, loan);
-            return this.findOne(id);
         });
     }
 
@@ -234,7 +263,6 @@ export class LoansService {
             loan.status = LoanStatus.BORROWING;
             loan.total_initial_payment = totalDeposit + totalRentalFee;
             await manager.save(Loan, loan);
-            return this.findOne(id);
         });
     }
 
@@ -255,7 +283,7 @@ export class LoansService {
                     'Only BORROWING or OVERDUE detail can be returned',
                 );
             }
-            if (dto.quantity_lost > detail.quantity) {
+            if (dto.lost_quantity > detail.quantity) {
                 throw new BadRequestException(
                     'Lost quantity cannot be greater than borrowed quantity',
                 );
@@ -276,7 +304,8 @@ export class LoansService {
 
             detail.status = LoanDetailStatus.RETURNED;
             detail.fine_amount = lateDays * Number(detail.book_fine_per_day) * detail.quantity;
-            detail.lost_fee = Number(detail.book_replacement_cost) * dto.quantity_lost;
+            detail.lost_quantity = dto.lost_quantity;
+            detail.lost_fee = Number(detail.book_replacement_cost) * detail.lost_quantity;
             detail.deposit_refund_amount = Math.max(
                 Number(detail.deposit_amount) - detail.fine_amount - detail.lost_fee,
                 0,
@@ -290,18 +319,17 @@ export class LoansService {
                 0,
             );
             detail.book.total_quantity = Math.max(
-                detail.book.total_quantity - dto.quantity_lost,
+                detail.book.total_quantity - detail.lost_quantity,
                 0,
             );
 
             await manager.save(Book, detail.book);
             await manager.save(LoanDetail, detail);
             await this.recalculateLoanAfterReturn(detail.loan_id, manager);
-            return this.findOne(detail.loan_id);
         });
     }
 
-    async cancelLoan(id: number) {
+    async cancelLoan(id: number, dto: CancelLoanDto) {
         return this.dataSource.transaction(async manager => {
             const loan = await manager.findOne(Loan, {
                 where: { id },
@@ -319,13 +347,12 @@ export class LoansService {
             }
 
             loan.status = LoanStatus.CANCELLED;
+            loan.cancelled_reason = dto.cancelled_reason;
             for (const detail of loan.loan_details) {
                 detail.status = LoanDetailStatus.CANCELLED;
                 await manager.save(LoanDetail, detail);
             }
-
             await manager.save(Loan, loan);
-            return this.findOne(id);
         });
     }
 
@@ -373,6 +400,7 @@ export class LoansService {
             id: loan.id,
             loan_date: loan.loan_date,
             status: loan.status,
+            cancelled_reason: loan.cancelled_reason,
 
             total_deposit: totalDeposit,
             total_rental_fee: totalRentalFee,
@@ -408,6 +436,7 @@ export class LoansService {
                 deposit_amount: Number(detail.deposit_amount),
                 rental_fee: Number(detail.rental_fee),
                 fine_amount: Number(detail.fine_amount || 0),
+                lost_quantity: Number(detail.lost_quantity || 0),
                 lost_fee: Number(detail.lost_fee || 0),
                 deposit_refund_amount: Number(detail.deposit_refund_amount || 0),
                 extra_payment_amount: Number(detail.extra_payment_amount || 0),

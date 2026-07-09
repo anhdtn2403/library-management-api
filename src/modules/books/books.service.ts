@@ -88,7 +88,10 @@ export class BooksService {
 
     async findOne(id: number) {
         const book = await this.bookRepository.findOne({
-            where: { id },
+            where: {
+                id: id,
+                is_active: true
+            },
             relations: {
                 sub_category: {
                     category: true,
@@ -102,6 +105,16 @@ export class BooksService {
     }
 
     async create(dto: CreateBookDto) {
+        const existingTitle = await this.bookRepository
+            .createQueryBuilder('book')
+            .where('LOWER(book.title) = LOWER(:title)', {
+                title: dto.title.trim(),
+            })
+            .getOne();
+
+        if (existingTitle) {
+            throw new BadRequestException('Book title already exists');
+        }
         if (dto.isbn) {
             const existingBook = await this.bookRepository.findOne({
                 where: {
@@ -126,6 +139,19 @@ export class BooksService {
         id: number,
         dto: UpdateBookDto,
     ) {
+        if (dto.title) {
+            const existingTitle = await this.bookRepository
+                .createQueryBuilder('book')
+                .where('LOWER(book.title) = LOWER(:title)', {
+                    title: dto.title.trim(),
+                })
+                .andWhere('book.id != :id', { id })
+                .getOne();
+
+            if (existingTitle) {
+                throw new BadRequestException('Book title already exists');
+            }
+        }
         if (dto.isbn) {
             const existingBook = await this.bookRepository.findOne({
                 where: {
