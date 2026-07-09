@@ -89,8 +89,7 @@ export class BooksService {
     async findOne(id: number) {
         const book = await this.bookRepository.findOne({
             where: {
-                id: id,
-                is_active: true
+                id: id
             },
             relations: {
                 sub_category: {
