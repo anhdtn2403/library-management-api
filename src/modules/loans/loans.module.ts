@@ -9,6 +9,7 @@ import { User } from 'src/entities/user.entity';
 import { RolePermission } from 'src/entities/role-permission.entity';
 import { LmsNotificationsModule } from '../lms-notifications/lms-notifications.module';
 import { LoansCronService } from './loans-cron.service';
+import { LoansResolver } from './loans.resolver';
 
 @Module({
   imports: [
@@ -22,6 +23,6 @@ import { LoansCronService } from './loans-cron.service';
     LmsNotificationsModule
   ],
   controllers: [LoansController],
-  providers: [LoansService, LoansCronService],
+  providers: [LoansService, LoansCronService, LoansResolver],
 })
 export class LoansModule { }

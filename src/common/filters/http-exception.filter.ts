@@ -7,6 +7,10 @@ export class HttpExceptionFilter
         exception: HttpException,
         host: ArgumentsHost,
     ) {
+        if (host.getType<'http' | 'graphql'>() === 'graphql') {
+            throw exception;
+        }
+
         const ctx = host.switchToHttp();
         const response = ctx.getResponse();
 

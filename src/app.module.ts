@@ -17,6 +17,9 @@ import { SubCategory } from './entities/sub-category.entity';
 import { Category } from './entities/category.entity';
 import { CategoriesModule } from './modules/categories/categories.module';
 import { SubCategoriesModule } from './modules/sub-categories/sub-categories.module';
+import { GraphQLModule } from '@nestjs/graphql';
+import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
+import './common/graphql/register-enums';
 
 @Module({
   imports: [
@@ -24,6 +27,12 @@ import { SubCategoriesModule } from './modules/sub-categories/sub-categories.mod
       isGlobal: true
     }),
     ScheduleModule.forRoot(),
+    GraphQLModule.forRoot<ApolloDriverConfig>({
+      driver: ApolloDriver,
+      autoSchemaFile: true,
+      playground: true,
+      context: ({ req }) => ({ req }),
+    }),
     TypeOrmModule.forRootAsync({
       inject: [ConfigService],
       useFactory: (config: ConfigService) => ({

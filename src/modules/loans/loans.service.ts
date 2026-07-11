@@ -69,7 +69,7 @@ export class LoansService {
             });
         }
 
-        if (query.user_id) {
+        if (query.user_id !== undefined) {
             qb.andWhere('loan.user_id = :user_id', {
                 user_id: query.user_id,
             });
@@ -139,27 +139,45 @@ export class LoansService {
                 status: LoanStatus.PENDING,
             });
             const savedLoan = await manager.save(Loan, loan);
-            const loanDetails: LoanDetail[] = [];
+
+            const totalQuantityByBook = new Map<number, number>();
             for (const item of dto.items) {
+                const currentQuantity =
+                    totalQuantityByBook.get(item.book_id) ?? 0;
+
+                totalQuantityByBook.set(
+                    item.book_id,
+                    currentQuantity + item.quantity,
+                );
+            }
+            const booksById = new Map<number, Book>();
+            for (const [bookId, requestedQuantity] of totalQuantityByBook) {
                 const book = await manager.findOne(Book, {
                     where: {
-                        id: item.book_id,
+                        id: bookId,
                         is_active: true,
                     },
                 });
                 if (!book) {
                     throw new NotFoundException(
-                        `Book with title "${item.book_id}" not found`,
+                        `Book with id ${bookId} not found`,
                     );
                 }
+                const availableQuantity =
+                    book.total_quantity - book.borrowed_quantity;
+                if (requestedQuantity > availableQuantity) {
+                    throw new BadRequestException(
+                        `Book "${book.title}" only has ${availableQuantity} copies available, but ${requestedQuantity} copies were requested`,
+                    );
+                }
+                booksById.set(bookId, book);
+            }
+            const loanDetails: LoanDetail[] = [];
+            for (const item of dto.items) {
+                const book = booksById.get(item.book_id)!;
                 if (item.borrow_days > book.max_borrow_days) {
                     throw new BadRequestException(
                         `Book "${book.title}" can only be borrowed for max ${book.max_borrow_days} days`,
-                    );
-                }
-                if (book.total_quantity - book.borrowed_quantity < item.quantity) {
-                    throw new BadRequestException(
-                        `Book "${book.title}" does not have enough available quantity`,
                     );
                 }
                 const depositAmount = Number(book.deposit_amount) * item.quantity;
@@ -230,38 +248,69 @@ export class LoansService {
             const loan = await manager.findOne(Loan, {
                 where: { id },
                 relations: {
-                    loan_details: {
-                        book: true,
-                    },
+                    loan_details: true,
                 },
             });
-            if (!loan) throw new NotFoundException('Loan not found');
+            if (!loan) {
+                throw new NotFoundException('Loan not found');
+            }
             if (loan.status !== LoanStatus.PENDING_PAYMENT) {
-                throw new BadRequestException('Only PENDING_PAYMENT loan can be paid');
+                throw new BadRequestException(
+                    'Only PENDING_PAYMENT loan can be paid',
+                );
+            }
+
+            const quantityByBook = new Map<number, number>();
+            for (const detail of loan.loan_details) {
+                quantityByBook.set(
+                    detail.book_id,
+                    (quantityByBook.get(detail.book_id) ?? 0)
+                    + detail.quantity,
+                );
+            }
+
+            // Khóa từng dòng book trong transaction để tránh
+            // hai request thanh toán cùng lúc cùng lấy một lượng tồn kho.
+            for (const [bookId, requestedQuantity] of quantityByBook) {
+                const book = await manager.findOne(Book, {
+                    where: {
+                        id: bookId,
+                        is_active: true,
+                    },
+                    lock: {
+                        mode: 'pessimistic_write',
+                    },
+                });
+                if (!book) {
+                    throw new NotFoundException(
+                        `Book with id ${bookId} not found or inactive`,
+                    );
+                }
+                const availableQuantity =
+                    book.total_quantity - book.borrowed_quantity;
+                if (requestedQuantity > availableQuantity) {
+                    throw new BadRequestException(
+                        `Book "${book.title}" only has ` +
+                        `${availableQuantity} copies available, ` +
+                        `but ${requestedQuantity} copies were requested`,
+                    );
+                }
+                book.borrowed_quantity += requestedQuantity;
+                await manager.save(Book, book);
             }
 
             let totalDeposit = 0;
             let totalRentalFee = 0;
             for (const detail of loan.loan_details) {
-                const book = detail.book;
-                const availableQuantity = book.total_quantity - book.borrowed_quantity;
-                if (availableQuantity < detail.quantity) {
-                    throw new BadRequestException(
-                        `Book "${book.title}" does not have enough available quantity`,
-                    );
-                }
-                book.borrowed_quantity += detail.quantity;
-                await manager.save(Book, book);
-
                 detail.status = LoanDetailStatus.BORROWING;
-                await manager.save(LoanDetail, detail);
-
                 totalDeposit += Number(detail.deposit_amount);
                 totalRentalFee += Number(detail.rental_fee);
             }
+            await manager.save(LoanDetail, loan.loan_details);
 
             loan.status = LoanStatus.BORROWING;
-            loan.total_initial_payment = totalDeposit + totalRentalFee;
+            loan.total_initial_payment =
+                totalDeposit + totalRentalFee;
             await manager.save(Loan, loan);
         });
     }
@@ -467,12 +516,16 @@ export class LoansService {
         });
         if (!loan) return;
         const details = loan.loan_details;
-        const totalDeposit = details.reduce((sum, d) => sum + Number(d.deposit_amount), 0);
-        const totalFine = details.reduce((sum, d) => sum + Number(d.fine_amount || 0), 0);
-        const totalLostFee = details.reduce((sum, d) => sum + Number(d.lost_fee || 0), 0);
-
-        loan.total_deposit_refund = Math.max(totalDeposit - totalFine - totalLostFee, 0);
-        loan.total_extra_payment = Math.max(totalFine + totalLostFee - totalDeposit, 0);
+        loan.total_deposit_refund = details.reduce(
+            (sum, detail) =>
+                sum + Number(detail.deposit_refund_amount || 0),
+            0,
+        );
+        loan.total_extra_payment = details.reduce(
+            (sum, detail) =>
+                sum + Number(detail.extra_payment_amount || 0),
+            0,
+        );
 
         if (details.every(d => d.status === LoanDetailStatus.RETURNED)) {
             loan.status = LoanStatus.COMPLETED;

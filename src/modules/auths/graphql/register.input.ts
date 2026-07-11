@@ -1,6 +1,9 @@
-import { IsEmail, IsEnum, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from "class-validator";
+import { Field, InputType } from "@nestjs/graphql";
+import { IsEmail, IsNotEmpty, IsString, Matches, MaxLength, MinLength } from "class-validator";
 
-export class RegisterDto {
+@InputType()
+export class RegisterInput {
+    @Field()
     @IsString()
     @IsNotEmpty()
     @MinLength(3)
@@ -11,6 +14,7 @@ export class RegisterDto {
     })
     username!: string;
 
+    @Field()
     @IsString()
     @IsNotEmpty()
     @MinLength(2)
@@ -21,11 +25,13 @@ export class RegisterDto {
     })
     full_name!: string;
 
+    @Field()
     @IsEmail()
     @IsNotEmpty()
     @MaxLength(255)
     email!: string;
 
+    @Field()
     @IsString()
     @IsNotEmpty()
     @MinLength(8)

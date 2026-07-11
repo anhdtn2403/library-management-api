@@ -25,7 +25,7 @@ export class SubCategoriesService {
             .createQueryBuilder('subCategory')
             .leftJoinAndSelect('subCategory.category', 'category')
             .orderBy('subCategory.id', 'ASC');
-        if (categoryId) {
+        if (categoryId !== undefined) {
             qb.where('subCategory.category_id = :categoryId', { categoryId });
         }
         return qb.getMany();
@@ -54,7 +54,7 @@ export class SubCategoriesService {
         const existed = await this.subCategoryRepository.findOne({
             where: {
                 category_id: dto.category_id,
-                name: dto.name,
+                name: dto.name.trim(),
             },
         });
         if (existed) {
@@ -70,31 +70,61 @@ export class SubCategoriesService {
     }
 
     async update(id: number, dto: UpdateSubCategoryDto) {
-        const subCategory = await this.findOne(id);
-        if (dto.category_id) {
-            const category = await this.categoryRepository.findOne({
-                where: { id: dto.category_id },
-            });
-            if (!category) {
-                throw new NotFoundException('Category not found');
-            }
-            subCategory.category_id = dto.category_id;
+        const subCategory =
+            await this.subCategoryRepository.findOneBy({ id });
+
+        if (!subCategory) {
+            throw new NotFoundException(
+                'Sub category not found',
+            );
         }
-        if (dto.name) {
-            const existed = await this.subCategoryRepository.findOne({
-                where: {
-                    category_id: dto.category_id ?? subCategory.category_id,
-                    name: dto.name,
-                },
-            });
+
+        const targetCategoryId =
+            dto.category_id ?? subCategory.category_id;
+
+        const targetName =
+            dto.name !== undefined
+                ? dto.name.trim()
+                : subCategory.name;
+
+        if (dto.category_id !== undefined) {
+            const category =
+                await this.categoryRepository.findOneBy({
+                    id: dto.category_id,
+                });
+
+            if (!category) {
+                throw new NotFoundException(
+                    'Category not found',
+                );
+            }
+        }
+
+        if (
+            dto.category_id !== undefined ||
+            dto.name !== undefined
+        ) {
+            const existed =
+                await this.subCategoryRepository.findOne({
+                    where: {
+                        category_id: targetCategoryId,
+                        name: targetName,
+                    },
+                });
+
             if (existed && existed.id !== id) {
                 throw new BadRequestException(
                     'Sub category name already exists in this category',
                 );
             }
-            subCategory.name = dto.name.trim();
         }
-        return this.subCategoryRepository.save(subCategory);
+
+        subCategory.category_id = targetCategoryId;
+        subCategory.name = targetName;
+
+        await this.subCategoryRepository.save(subCategory);
+
+        return this.findOne(id);
     }
 
     async remove(id: number) {

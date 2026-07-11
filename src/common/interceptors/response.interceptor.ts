@@ -7,6 +7,12 @@ export class ResponseInterceptor<T> implements NestInterceptor<T, any> {
         context: ExecutionContext,
         next: CallHandler,
     ): Observable<any> {
+        // GraphQL phải trả đúng dữ liệu theo schema,
+        // không bọc bằng format response của REST.
+        if (context.getType<string>() === 'graphql') {
+            return next.handle();
+        }
+
         const response = context.switchToHttp().getResponse();
 
         return next.handle().pipe(

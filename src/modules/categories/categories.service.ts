@@ -40,7 +40,7 @@ export class CategoriesService {
 
     async create(dto: CreateCategoryDto) {
         const existed = await this.categoryRepository.findOne({
-            where: { name: dto.name },
+            where: { name: dto.name.trim() },
         });
 
         if (existed) {
@@ -59,7 +59,7 @@ export class CategoriesService {
 
         if (dto.name) {
             const existed = await this.categoryRepository.findOne({
-                where: { name: dto.name },
+                where: { name: dto.name.trim() },
             });
 
             if (existed && existed.id !== id) {

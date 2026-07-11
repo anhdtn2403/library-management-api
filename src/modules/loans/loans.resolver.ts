@@ -1,0 +1,111 @@
+import { Args, ID, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { LoanType } from "./graphql/loan.type";
+import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
+import { UseGuards } from "@nestjs/common";
+import { PermissionsGuard } from "src/common/guards/permissions.guard";
+import { LoansService } from "./loans.service";
+import { LoansPageType } from "./graphql/loans-page.type";
+import { RequirePermissions } from "src/common/decorators/permission.decorator";
+import { UserPermission } from "src/common/enums/user-permission.enum";
+import { GetLoansInput } from "./graphql/get-loans.input";
+import { CreateLoanInput } from "./graphql/create-loan.input";
+
+@Resolver(() => LoanType)
+@UseGuards(JwtAuthGuard, PermissionsGuard)
+export class LoansResolver {
+    constructor(private readonly loansService: LoansService) { }
+
+    @Query(() => LoansPageType, {
+        name: 'loans',
+    })
+    @RequirePermissions(UserPermission.LOAN_VIEW)
+    findAll(
+        @Args('query', {
+            type: () => GetLoansInput,
+            nullable: true,
+        })
+        query?: GetLoansInput,
+    ) {
+        return this.loansService.findAll(
+            query ?? new GetLoansInput(),
+        );
+    }
+
+    @Query(() => LoanType, {
+        name: 'loan',
+    })
+    @RequirePermissions(UserPermission.LOAN_VIEW)
+    findOne(
+        @Args('id', { type: () => ID })
+        id: number,
+    ) {
+        return this.loansService.findOne(Number(id));
+    }
+
+    @Mutation(() => LoanType)
+    @RequirePermissions(UserPermission.LOAN_CREATE)
+    createLoan(
+        @Args('input')
+        input: CreateLoanInput,
+    ) {
+        return this.loansService.create(input);
+    }
+
+    @Mutation(() => Boolean)
+    @RequirePermissions(UserPermission.LOAN_CONFIRM)
+    async confirmLoan(
+        @Args('id', { type: () => ID })
+        id: number,
+    ) {
+        await this.loansService.confirmLoan(Number(id));
+        return true;
+    }
+
+    @Mutation(() => Boolean)
+    @RequirePermissions(UserPermission.LOAN_BORROWING)
+    async payAndBorrow(
+        @Args('id', { type: () => ID })
+        id: number,
+    ) {
+        await this.loansService.payAndBorrow(Number(id));
+        return true;
+    }
+
+    @Mutation(() => Boolean)
+    @RequirePermissions(UserPermission.LOAN_DETAIL_RETURN)
+    async returnLoanDetail(
+        @Args('detailId', { type: () => ID })
+        detailId: number,
+
+        @Args('lostQuantity', {
+            type: () => Int,
+            defaultValue: 0,
+        })
+        lostQuantity: number,
+    ) {
+        await this.loansService.returnLoanDetail(
+            Number(detailId),
+            {
+                lost_quantity: lostQuantity,
+            },
+        );
+
+        return true;
+    }
+
+    @Mutation(() => Boolean)
+    @RequirePermissions(UserPermission.LOAN_CANCEL)
+    async cancelLoan(
+        @Args('id', { type: () => ID })
+        id: number,
+
+        @Args('reason')
+        reason: string,
+    ) {
+        await this.loansService.cancelLoan(Number(id), {
+            cancelled_reason: reason,
+        });
+
+        return true;
+    }
+}

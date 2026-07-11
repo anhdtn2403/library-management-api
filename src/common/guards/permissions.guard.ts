@@ -10,6 +10,7 @@ import { Repository, In } from 'typeorm';
 import { RolePermission } from 'src/entities/role-permission.entity';
 import { UserPermission } from '../enums/user-permission.enum';
 import { PERMISSIONS_KEY } from '../decorators/permission.decorator';
+import { GqlExecutionContext } from '@nestjs/graphql';
 
 @Injectable()
 export class PermissionsGuard implements CanActivate {
@@ -31,7 +32,13 @@ export class PermissionsGuard implements CanActivate {
             return true;
         }
 
-        const request = context.switchToHttp().getRequest();
+        let request;
+        if (context.getType<'graphql' | 'http'>() === 'graphql') {
+            const ctx = GqlExecutionContext.create(context);
+            request = ctx.getContext().req;
+        } else {
+            request = context.switchToHttp().getRequest();
+        }
         const user = request.user;
 
         if (!user || !user.role) {
