@@ -6,6 +6,8 @@ import { CreateBookDto } from './dtos/create-book.dto';
 import { UpdateBookDto } from './dtos/update-book.dto';
 import { GetBooksQueryDto } from './dtos/get-books-query.dto';
 import { SubCategory } from 'src/entities/sub-category.entity';
+import { join } from 'path';
+import { existsSync, unlinkSync } from 'fs';
 
 @Injectable()
 // @Injectable() báo cho NestJS biết class này là provider, 
@@ -220,5 +222,62 @@ export class BooksService {
         // xóa mềm -> Book ko cho mượn nữa, lưu lịch sử mượn trước đó
         book.is_active = false;
         await this.bookRepository.save(book);
+    }
+
+    async updateImage(
+        id: number,
+        filename: string,
+    ) {
+        const uploadedFilePath = join(
+            process.cwd(),
+            'uploads',
+            'books',
+            filename,
+        );
+        const book = await this.bookRepository.findOneBy({
+            id,
+        });
+        if (!book) {
+            this.deleteFileIfExists(uploadedFilePath);
+            throw new NotFoundException(
+                'Book not found',
+            );
+        }
+        const oldImageUrl = book.image_url;
+        book.image_url =
+            `/uploads/books/${filename}`;
+        try {
+            await this.bookRepository.save(book);
+        } catch (error) {
+            // Nếu lưu database thất bại thì xóa ảnh vừa upload,
+            // tránh tạo file rác trong server.
+            this.deleteFileIfExists(uploadedFilePath);
+            throw error;
+        }
+        // Chỉ xóa ảnh cũ sau khi cập nhật database thành công.
+        if (
+            oldImageUrl &&
+            oldImageUrl.startsWith('/uploads/books/')
+        ) {
+            const oldFilename = oldImageUrl.replace(
+                '/uploads/books/',
+                '',
+            );
+            const oldFilePath = join(
+                process.cwd(),
+                'uploads',
+                'books',
+                oldFilename,
+            );
+
+            this.deleteFileIfExists(oldFilePath);
+        }
+        return this.findOne(id);
+    }
+
+    private deleteFileIfExists(filePath: string) {
+        if (existsSync(filePath)) {
+            unlinkSync(filePath);
+        }
     }
 }

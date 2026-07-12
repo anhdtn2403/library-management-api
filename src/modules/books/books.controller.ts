@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Param, Post, Put, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, ParseFilePipe, ParseIntPipe, Patch, Post, Put, Query, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { BooksService } from './books.service';
 import { CreateBookDto } from './dtos/create-book.dto';
 import { UpdateBookDto } from './dtos/update-book.dto';
@@ -7,6 +7,8 @@ import { PermissionsGuard } from 'src/common/guards/permissions.guard';
 import { UserPermission } from 'src/common/enums/user-permission.enum';
 import { RequirePermissions } from 'src/common/decorators/permission.decorator';
 import { GetBooksQueryDto } from './dtos/get-books-query.dto';
+import { FileInterceptor } from '@nestjs/platform-express';
+import { bookImageUploadOptions } from 'src/common/configs/image-upload.config';
 
 //@UseGuards(JwtAuthGuard, RolesGuard) //Toàn bộ API /books đều yêu cầu đăng nhập.
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -48,6 +50,30 @@ export class BooksController {
     remove(@Param('id') id: string) {
         return this.booksService.remove(
             Number(id),
+        );
+    }
+
+    @Patch(':id/image')
+    @RequirePermissions(UserPermission.BOOK_UPDATE)
+    @UseInterceptors(
+        FileInterceptor(
+            'image',
+            bookImageUploadOptions,
+        ),
+    )
+    updateImage(
+        @Param('id', ParseIntPipe) id: number,
+
+        @UploadedFile(
+            new ParseFilePipe({
+                fileIsRequired: true,
+            }),
+        )
+        image: Express.Multer.File,
+    ) {
+        return this.booksService.updateImage(
+            id,
+            image.filename,
         );
     }
 }
