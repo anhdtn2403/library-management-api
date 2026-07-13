@@ -9,6 +9,7 @@ import { RequirePermissions } from "src/common/decorators/permission.decorator";
 import { UserPermission } from "src/common/enums/user-permission.enum";
 import { GetLoansInput } from "./graphql/get-loans.input";
 import { CreateLoanInput } from "./graphql/create-loan.input";
+import { ReturnDetailInput } from "./graphql/return-detail.input";
 
 @Resolver(() => LoanType)
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -74,22 +75,9 @@ export class LoansResolver {
     @Mutation(() => Boolean)
     @RequirePermissions(UserPermission.LOAN_DETAIL_RETURN)
     async returnLoanDetail(
-        @Args('detailId', { type: () => ID })
-        detailId: number,
-
-        @Args('lostQuantity', {
-            type: () => Int,
-            defaultValue: 0,
-        })
-        lostQuantity: number,
-    ) {
-        await this.loansService.returnLoanDetail(
-            Number(detailId),
-            {
-                lost_quantity: lostQuantity,
-            },
-        );
-
+        @Args('detailId', { type: () => ID }) detailId: number,
+        @Args('input') input: ReturnDetailInput) {
+        await this.loansService.returnLoanDetail(Number(detailId), input);
         return true;
     }
 

@@ -20,6 +20,7 @@ import { SubCategoriesModule } from './modules/sub-categories/sub-categories.mod
 import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import './common/graphql/register-enums';
+import { ReturnedHistory } from './entities/returned-history.entity';
 
 @Module({
   imports: [
@@ -48,6 +49,7 @@ import './common/graphql/register-enums';
           User,
           Loan,
           LoanDetail,
+          ReturnedHistory,
           RolePermission,
           LmsNotification,
           Category,

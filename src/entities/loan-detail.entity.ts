@@ -1,7 +1,8 @@
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { Loan } from "./loan.entity";
 import { Book } from "./book.entity";
 import { LoanDetailStatus } from "../common/enums/loan-status.enum";
+import { ReturnedHistory } from "./returned-history.entity";
 
 @Entity('loan_details')
 export class LoanDetail {
@@ -25,7 +26,7 @@ export class LoanDetail {
     due_date?: Date;
 
     @Column({ nullable: true })
-    return_date?: Date;
+    completed_at?: Date;
 
     @Column({
         type: 'enum',
@@ -40,20 +41,23 @@ export class LoanDetail {
     @Column({ type: 'decimal', precision: 12, scale: 2, default: 0 })
     rental_fee!: number;
 
-    @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
-    fine_amount?: number; // tiền phạt do trả trễ = book_fine_per_day × quantity × days_late
+    @Column({ default: 0, type: 'decimal', precision: 12, scale: 2 })
+    fine_amount!: number; // Tổng tiền phạt trễ của tất cả lần xử lý trả sách
 
-    @Column({ nullable: true })
-    lost_quantity?: number;
+    @Column({ type: 'int', default: 0 })
+    returned_quantity!: number;
 
-    @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
-    lost_fee?: number; // tiền đền nếu mất sách = book_replacement_cost × lost_quantity
+    @Column({ type: 'int', default: 0 })
+    lost_quantity!: number;
 
-    @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
-    deposit_refund_amount?: number; // = max(deposit_amount - fine_amount - lost_fee, 0)
+    @Column({ default: 0, type: 'decimal', precision: 12, scale: 2 })
+    lost_fee!: number; // Tổng phí mất sách của tất cả lần xử lý
 
-    @Column({ nullable: true, type: 'decimal', precision: 12, scale: 2 })
-    extra_payment_amount?: number; // = max(fine_amount + lost_fee - deposit_amount, 0)
+    @Column({ default: 0, type: 'decimal', precision: 12, scale: 2 })
+    deposit_refund_amount!: number; // Tổng tiền cọc đã hoàn qua các lần trả
+
+    @Column({ default: 0, type: 'decimal', precision: 12, scale: 2 })
+    extra_payment_amount!: number; // Tổng tiền khách phải trả thêm qua các lần trả
 
     @CreateDateColumn()
     created_at!: Date;
@@ -84,4 +88,10 @@ export class LoanDetail {
         name: 'book_id'
     })
     book!: Book;
+
+    @OneToMany(
+        () => ReturnedHistory,
+        history => history.loan_detail,
+    )
+    returned_histories!: ReturnedHistory[];
 }

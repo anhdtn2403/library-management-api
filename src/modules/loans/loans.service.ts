@@ -11,6 +11,7 @@ import { LmsNotificationsService } from '../lms-notifications/lms-notifications.
 import { GetLoansQueryDto } from './dtos/get-loans-query.dto';
 import { ReturnLoanDetailDto } from './dtos/return-loan-detail.dto';
 import { CancelLoanDto } from './dtos/cancel-loan.dto';
+import { ReturnedHistory } from 'src/entities/returned-history.entity';
 
 @Injectable()
 export class LoansService {
@@ -30,6 +31,7 @@ export class LoansService {
             .leftJoinAndSelect('loan.user', 'user')
             .leftJoinAndSelect('loan.loan_details', 'detail')
             .leftJoinAndSelect('detail.book', 'book')
+            .leftJoinAndSelect('detail.returned_histories', 'returnedHistory')
             .select([
                 'loan.id',
                 'loan.loan_date',
@@ -47,11 +49,12 @@ export class LoansService {
                 'detail.quantity',
                 'detail.borrow_days',
                 'detail.due_date',
-                'detail.return_date',
                 'detail.status',
+                'detail.completed_at',
                 'detail.deposit_amount',
                 'detail.rental_fee',
                 'detail.fine_amount',
+                'detail.returned_quantity',
                 'detail.lost_quantity',
                 'detail.lost_fee',
                 'detail.deposit_refund_amount',
@@ -61,6 +64,17 @@ export class LoansService {
                 'book.title',
                 'book.author',
                 'book.image_url',
+
+                'returnedHistory.id',
+                'returnedHistory.return_date',
+                'returnedHistory.return_quantity',
+                'returnedHistory.lost_quantity',
+                'returnedHistory.late_days',
+                'returnedHistory.fine_amount',
+                'returnedHistory.lost_fee',
+                'returnedHistory.deposit_refund_amount',
+                'returnedHistory.extra_payment_amount',
+                'returnedHistory.note',
             ]);
 
         if (query.status) {
@@ -111,6 +125,7 @@ export class LoansService {
                     user: true,
                     loan_details: {
                         book: true,
+                        returned_histories: true
                     },
                 },
             });
@@ -210,6 +225,7 @@ export class LoansService {
                     user: true,
                     loan_details: {
                         book: true,
+                        returned_histories: true
                     },
                 },
             });
@@ -325,6 +341,9 @@ export class LoansService {
                     },
                     book: true,
                 },
+                lock: {
+                    mode: 'pessimistic_write',
+                },
             });
             if (!detail) throw new NotFoundException('Loan detail not found');
             if (![LoanDetailStatus.BORROWING, LoanDetailStatus.OVERDUE].includes(detail.status)) {
@@ -332,48 +351,89 @@ export class LoansService {
                     'Only BORROWING or OVERDUE detail can be returned',
                 );
             }
-            if (dto.lost_quantity > detail.quantity) {
+
+            const returnQuantity = dto.return_quantity;
+            const lostQuantity = dto.lost_quantity;
+            const processedQuantity = returnQuantity + lostQuantity;
+            if (processedQuantity <= 0) {
                 throw new BadRequestException(
-                    'Lost quantity cannot be greater than borrowed quantity',
+                    'Return quantity or lost quantity must be greater than 0',
                 );
             }
 
-            const now = new Date();
-            detail.return_date = now;
+            const currentReturnedQuantity = Number(detail.returned_quantity || 0);
+            const currentLostQuantity = Number(detail.lost_quantity || 0);
+            const remainingQuantity = detail.quantity
+                - currentReturnedQuantity - currentLostQuantity;
+            if (processedQuantity > remainingQuantity) {
+                throw new BadRequestException(
+                    `Only ${remainingQuantity} book(s) remain unprocessed`,
+                );
+            }
+            if (detail.quantity <= 0) {
+                throw new BadRequestException(
+                    'Loan detail quantity is invalid',
+                );
+            }
             if (!detail.due_date) {
                 throw new BadRequestException(
                     'Loan detail does not have due date',
                 );
             }
-            const dueDate = detail.due_date;
+            const now = new Date();
             const lateDays = Math.max(
-                Math.ceil((now.getTime() - dueDate.getTime()) / (1000 * 60 * 60 * 24)),
+                Math.ceil((now.getTime() - detail.due_date.getTime()) / (1000 * 60 * 60 * 24)),
                 0,
             );
 
-            detail.status = LoanDetailStatus.RETURNED;
-            detail.fine_amount = lateDays * Number(detail.book_fine_per_day) * detail.quantity;
-            detail.lost_quantity = dto.lost_quantity;
-            detail.lost_fee = Number(detail.book_replacement_cost) * detail.lost_quantity;
-            detail.deposit_refund_amount = Math.max(
-                Number(detail.deposit_amount) - detail.fine_amount - detail.lost_fee,
-                0,
-            );
-            detail.extra_payment_amount = Math.max(
-                detail.fine_amount + detail.lost_fee - Number(detail.deposit_amount),
-                0,
-            );
-            detail.book.borrowed_quantity = Math.max(
-                detail.book.borrowed_quantity - detail.quantity,
-                0,
-            );
-            detail.book.total_quantity = Math.max(
-                detail.book.total_quantity - detail.lost_quantity,
-                0,
-            );
+            const fineAmount = lateDays * Number(detail.book_fine_per_day || 0) * processedQuantity;
+            const lostFee = Number(detail.book_replacement_cost || 0) * lostQuantity;
+            const depositPerBook = Number(detail.deposit_amount || 0) / detail.quantity;
+            const depositForThisReturn = depositPerBook * processedQuantity;
+            const depositRefundAmount = Math.max(depositForThisReturn - fineAmount - lostFee, 0);
+            const extraPaymentAmount = Math.max(fineAmount + lostFee - depositForThisReturn, 0);
 
-            await manager.save(Book, detail.book);
+            const returnedHistory = manager.create(
+                ReturnedHistory,
+                {
+                    loan_detail_id: detail.id,
+                    return_date: now,
+                    return_quantity: returnQuantity,
+                    lost_quantity: lostQuantity,
+                    late_days: lateDays,
+                    fine_amount: fineAmount,
+                    lost_fee: lostFee,
+                    deposit_refund_amount:
+                        depositRefundAmount,
+                    extra_payment_amount:
+                        extraPaymentAmount,
+                    note: dto.note,
+                },
+            );
+            await manager.save(ReturnedHistory, returnedHistory);
+
+            detail.returned_quantity = currentReturnedQuantity + returnQuantity;
+            detail.lost_quantity = currentLostQuantity + lostQuantity;
+            detail.fine_amount = Number(detail.fine_amount || 0) + fineAmount;
+            detail.lost_fee = Number(detail.lost_fee || 0) + lostFee;
+            detail.deposit_refund_amount = Number(detail.deposit_refund_amount || 0) + depositRefundAmount;
+            detail.extra_payment_amount = Number(detail.extra_payment_amount || 0) + extraPaymentAmount;
+            if (detail.returned_quantity + detail.lost_quantity === detail.quantity) {
+                detail.status = LoanDetailStatus.RETURNED;
+                detail.completed_at = now;
+            }
+            else if (now.getTime() > detail.due_date.getTime()) {
+                detail.status = LoanDetailStatus.OVERDUE;
+            }
+            else {
+                detail.status = LoanDetailStatus.BORROWING;
+            }
             await manager.save(LoanDetail, detail);
+
+            detail.book.borrowed_quantity = Math.max(detail.book.borrowed_quantity - processedQuantity, 0);
+            detail.book.total_quantity = Math.max(detail.book.total_quantity - lostQuantity, 0);
+            await manager.save(Book, detail.book);
+
             await this.recalculateLoanAfterReturn(detail.loan_id, manager);
         });
     }
@@ -479,16 +539,34 @@ export class LoansService {
                 quantity: detail.quantity,
                 borrow_days: detail.borrow_days,
                 due_date: detail.due_date,
-                return_date: detail.return_date,
+                completed_at: detail.completed_at,
                 status: detail.status,
 
                 deposit_amount: Number(detail.deposit_amount),
                 rental_fee: Number(detail.rental_fee),
                 fine_amount: Number(detail.fine_amount || 0),
+                returned_quantity: Number(detail.returned_quantity || 0),
                 lost_quantity: Number(detail.lost_quantity || 0),
                 lost_fee: Number(detail.lost_fee || 0),
                 deposit_refund_amount: Number(detail.deposit_refund_amount || 0),
                 extra_payment_amount: Number(detail.extra_payment_amount || 0),
+                remaining_quantity: detail.quantity
+                    - Number(detail.returned_quantity || 0,)
+                    - Number(detail.lost_quantity || 0,),
+                returned_histories: detail.returned_histories?.map(
+                    history => ({
+                        id: history.id,
+                        return_date: history.return_date,
+                        return_quantity: history.return_quantity,
+                        lost_quantity: history.lost_quantity,
+                        late_days: history.late_days,
+                        fine_amount: Number(history.fine_amount),
+                        lost_fee: Number(history.lost_fee),
+                        deposit_refund_amount: Number(history.deposit_refund_amount),
+                        extra_payment_amount: Number(history.extra_payment_amount),
+                        note: history.note,
+                    }),
+                ) ?? [],
             }))
         };
     }
@@ -518,12 +596,12 @@ export class LoansService {
         const details = loan.loan_details;
         loan.total_deposit_refund = details.reduce(
             (sum, detail) =>
-                sum + Number(detail.deposit_refund_amount || 0),
+                sum + Number(detail.deposit_refund_amount),
             0,
         );
         loan.total_extra_payment = details.reduce(
             (sum, detail) =>
-                sum + Number(detail.extra_payment_amount || 0),
+                sum + Number(detail.extra_payment_amount),
             0,
         );
 

@@ -10,12 +10,14 @@ import { RolePermission } from 'src/entities/role-permission.entity';
 import { LmsNotificationsModule } from '../lms-notifications/lms-notifications.module';
 import { LoansCronService } from './loans-cron.service';
 import { LoansResolver } from './loans.resolver';
+import { ReturnedHistory } from 'src/entities/returned-history.entity';
 
 @Module({
   imports: [
     TypeOrmModule.forFeature([
       Loan,
       LoanDetail,
+      ReturnedHistory,
       Book,
       User,
       RolePermission,

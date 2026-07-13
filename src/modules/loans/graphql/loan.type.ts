@@ -34,13 +34,22 @@ export class LoanBookType {
     quantity!: number;
 
     @Field(() => Int)
+    returned_quantity!: number;
+
+    @Field(() => Int)
+    lost_quantity!: number;
+
+    @Field(() => Int)
+    remaining_quantity!: number;
+
+    @Field(() => Int)
     borrow_days!: number;
 
     @Field({ nullable: true })
     due_date?: Date;
 
     @Field({ nullable: true })
-    return_date?: Date;
+    completed_at?: Date;
 
     @Field(() => LoanDetailStatus)
     status!: LoanDetailStatus;
@@ -54,9 +63,6 @@ export class LoanBookType {
     @Field(() => Float)
     fine_amount!: number;
 
-    @Field(() => Int)
-    lost_quantity!: number;
-
     @Field(() => Float)
     lost_fee!: number;
 
@@ -65,6 +71,9 @@ export class LoanBookType {
 
     @Field(() => Float)
     extra_payment_amount!: number;
+
+    @Field(() => [ReturnedHistoryType])
+    returned_histories!: ReturnedHistoryType[];
 }
 
 @ObjectType()
@@ -112,4 +121,37 @@ export class LoanType {
 
     @Field(() => [LoanBookType])
     books!: LoanBookType[];
+}
+
+@ObjectType()
+export class ReturnedHistoryType {
+    @Field(() => ID)
+    id!: number;
+
+    @Field()
+    return_date!: Date;
+
+    @Field(() => Int)
+    return_quantity!: number;
+
+    @Field(() => Int)
+    lost_quantity!: number;
+
+    @Field(() => Int)
+    late_days!: number;
+
+    @Field(() => Float)
+    fine_amount!: number;
+
+    @Field(() => Float)
+    lost_fee!: number;
+
+    @Field(() => Float)
+    deposit_refund_amount!: number;
+
+    @Field(() => Float)
+    extra_payment_amount!: number;
+
+    @Field({ nullable: true })
+    note?: string;
 }
