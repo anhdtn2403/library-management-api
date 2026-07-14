@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { LoansController } from './loans.controller';
 import { LoansService } from './loans.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Loan } from 'src/entities/loan.entity';
@@ -24,7 +23,6 @@ import { ReturnedHistory } from 'src/entities/returned-history.entity';
     ]),
     LmsNotificationsModule
   ],
-  controllers: [LoansController],
   providers: [LoansService, LoansCronService, LoansResolver],
 })
 export class LoansModule { }

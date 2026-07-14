@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { BooksController } from './books.controller';
 import { BooksService } from './books.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { Book } from 'src/entities/book.entity';
@@ -12,7 +11,6 @@ import { SubCategory } from 'src/entities/sub-category.entity';
 
 @Module({
   imports: [TypeOrmModule.forFeature([Book, LoanDetail, Loan, User, RolePermission, SubCategory])], // Thêm RolePermission vào đây để có thể sử dụng repository của nó trong BooksService
-  controllers: [BooksController],
   providers: [BooksService, BooksResolver],
 })
 export class BooksModule { }

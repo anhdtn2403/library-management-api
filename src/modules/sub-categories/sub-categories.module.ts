@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { SubCategoriesController } from './sub-categories.controller';
 import { SubCategoriesService } from './sub-categories.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { SubCategory } from 'src/entities/sub-category.entity';
@@ -10,7 +9,6 @@ import { SubCategoriesResolver } from './sub-categories.resolver';
 
 @Module({
   imports: [TypeOrmModule.forFeature([SubCategory, Category, Book, RolePermission])],
-  controllers: [SubCategoriesController],
   providers: [SubCategoriesService, SubCategoriesResolver],
 })
 export class SubCategoriesModule { }

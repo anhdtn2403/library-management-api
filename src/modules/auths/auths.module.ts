@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common';
-import { AuthsController } from './auths.controller';
 import { AuthsService } from './auths.service';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
@@ -33,7 +32,6 @@ import { AuthsResolver } from './auths.resolver';
     }),
 
   ],
-  controllers: [AuthsController],
   providers: [AuthsService, JwtStrategy, AuthsResolver],
 })
 export class AuthsModule { }
