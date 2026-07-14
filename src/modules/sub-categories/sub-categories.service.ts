@@ -4,8 +4,8 @@ import { Book } from 'src/entities/book.entity';
 import { Category } from 'src/entities/category.entity';
 import { SubCategory } from 'src/entities/sub-category.entity';
 import { Repository } from 'typeorm';
-import { CreateSubCategoryDto } from './dtos/create-sub-category.dto';
-import { UpdateSubCategoryDto } from './dtos/update-sub-category.dto';
+import { CreateSubCategoryInput } from './graphql/create-sub-category.input';
+import { UpdateSubCategoryInput } from './graphql/update-sub-category.input';
 
 @Injectable()
 export class SubCategoriesService {
@@ -44,7 +44,7 @@ export class SubCategoriesService {
         return subCategory;
     }
 
-    async create(dto: CreateSubCategoryDto) {
+    async create(dto: CreateSubCategoryInput) {
         const category = await this.categoryRepository.findOne({
             where: { id: dto.category_id },
         });
@@ -69,7 +69,7 @@ export class SubCategoriesService {
         return this.subCategoryRepository.save(subCategory);
     }
 
-    async update(id: number, dto: UpdateSubCategoryDto) {
+    async update(id: number, dto: UpdateSubCategoryInput) {
         const subCategory =
             await this.subCategoryRepository.findOneBy({ id });
 

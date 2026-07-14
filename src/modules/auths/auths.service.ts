@@ -3,11 +3,11 @@ import { JwtService } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from 'src/entities/user.entity';
 import { Repository } from 'typeorm';
-import { RegisterDto } from './dtos/register.dto';
 import * as bcrypt from 'bcrypt';
 import { UserRole } from 'src/common/enums/user-role.enum';
-import { LoginDto } from './dtos/login.dto';
 import { ConfigService } from '@nestjs/config';
+import { RegisterInput } from './graphql/register.input';
+import { LoginInput } from './graphql/login.input';
 @Injectable()
 export class AuthsService {
     constructor(
@@ -16,7 +16,7 @@ export class AuthsService {
         private readonly jwtService: JwtService,
         private readonly configService: ConfigService
     ) { }
-    async register(dto: RegisterDto) {
+    async register(dto: RegisterInput) {
         const existedUser = await this.userRepository.findOneBy({
             email: dto.email,
         });
@@ -44,7 +44,7 @@ export class AuthsService {
         return result;
     }
 
-    async login(dto: LoginDto) {
+    async login(dto: LoginInput) {
         const user = await this.userRepository.findOneBy({
             username: dto.username,
         });

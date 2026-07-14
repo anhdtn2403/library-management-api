@@ -2,12 +2,12 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Book } from 'src/entities/book.entity';
 import { Not, Repository } from 'typeorm';
-import { CreateBookDto } from './dtos/create-book.dto';
-import { UpdateBookDto } from './dtos/update-book.dto';
-import { GetBooksQueryDto } from './dtos/get-books-query.dto';
 import { SubCategory } from 'src/entities/sub-category.entity';
 import { join } from 'path';
 import { existsSync, unlinkSync } from 'fs';
+import { GetBooksInput } from './graphql/get-books.input';
+import { CreateBookInput } from './graphql/create-book.input';
+import { UpdateBookInput } from './graphql/update-book.input';
 
 @Injectable()
 // @Injectable() báo cho NestJS biết class này là provider, 
@@ -21,7 +21,7 @@ export class BooksService {
         private readonly subCategoryRepository: Repository<SubCategory>,
     ) { }
 
-    async findAll(query: GetBooksQueryDto) {
+    async findAll(query: GetBooksInput) {
         const pageNumber = query.page || 1;
         const pageSize = query.pageSize || 10;
         const qb = this.bookRepository
@@ -120,7 +120,7 @@ export class BooksService {
         return book;
     }
 
-    async create(dto: CreateBookDto) {
+    async create(dto: CreateBookInput) {
         const existingTitle = await this.bookRepository
             .createQueryBuilder('book')
             .where('LOWER(book.title) = LOWER(:title)', {
@@ -161,10 +161,7 @@ export class BooksService {
         return this.bookRepository.save(book);
     }
 
-    async update(
-        id: number,
-        dto: UpdateBookDto,
-    ) {
+    async update(id: number, dto: UpdateBookInput) {
         const book = await this.bookRepository.findOneBy({ id });
         if (!book) {
             throw new NotFoundException('Book not found');

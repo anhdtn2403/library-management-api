@@ -2,8 +2,8 @@ import { BadRequestException, Injectable, NotFoundException } from '@nestjs/comm
 import { InjectRepository } from '@nestjs/typeorm';
 import { Category } from 'src/entities/category.entity';
 import { Repository } from 'typeorm';
-import { CreateCategoryDto } from './dtos/create-category.dto';
-import { UpdateCategoryDto } from './dtos/update-category.dto';
+import { CreateCategoryInput } from './graphql/create-category.input';
+import { UpdateCategoryInput } from './graphql/update-category.input';
 
 @Injectable()
 export class CategoriesService {
@@ -38,7 +38,7 @@ export class CategoriesService {
         return category;
     }
 
-    async create(dto: CreateCategoryDto) {
+    async create(dto: CreateCategoryInput) {
         const existed = await this.categoryRepository.findOne({
             where: { name: dto.name.trim() },
         });
@@ -54,7 +54,7 @@ export class CategoriesService {
         return this.categoryRepository.save(category);
     }
 
-    async update(id: number, dto: UpdateCategoryDto) {
+    async update(id: number, dto: UpdateCategoryInput) {
         const category = await this.findOne(id);
 
         if (dto.name) {

@@ -1,9 +1,0 @@
-import { Field } from "@nestjs/graphql";
-import { IsNotEmpty, IsString } from "class-validator";
-
-export class RefreshTokenDto {
-    @Field()
-    @IsString()
-    @IsNotEmpty()
-    refresh_token!: string;
-}

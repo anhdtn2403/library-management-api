@@ -12,6 +12,7 @@ export class GetLoansInput {
     @Field(() => Int, { nullable: true })
     @IsOptional()
     @IsInt()
+    @Min(1)
     user_id?: number;
 
     @Field({ nullable: true })

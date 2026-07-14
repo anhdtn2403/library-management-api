@@ -10,6 +10,7 @@ import { UserPermission } from "src/common/enums/user-permission.enum";
 import { GetLoansInput } from "./graphql/get-loans.input";
 import { CreateLoanInput } from "./graphql/create-loan.input";
 import { ReturnDetailInput } from "./graphql/return-detail.input";
+import { CancelLoanInput } from "./graphql/cancel-loan.input";
 
 @Resolver(() => LoanType)
 @UseGuards(JwtAuthGuard, PermissionsGuard)
@@ -87,12 +88,10 @@ export class LoansResolver {
         @Args('id', { type: () => ID })
         id: number,
 
-        @Args('reason')
-        reason: string,
+        @Args('input')
+        input: CancelLoanInput
     ) {
-        await this.loansService.cancelLoan(Number(id), {
-            cancelled_reason: reason,
-        });
+        await this.loansService.cancelLoan(Number(id), input);
 
         return true;
     }

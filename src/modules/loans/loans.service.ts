@@ -5,13 +5,13 @@ import { LoanDetail } from 'src/entities/loan-detail.entity';
 import { Loan } from 'src/entities/loan.entity';
 import { User } from 'src/entities/user.entity';
 import { DataSource, EntityManager, LessThan, Repository } from 'typeorm';
-import { CreateLoanDto } from './dtos/create-loan.dto';
 import { LoanDetailStatus, LoanStatus } from 'src/common/enums/loan-status.enum';
 import { LmsNotificationsService } from '../lms-notifications/lms-notifications.service';
-import { GetLoansQueryDto } from './dtos/get-loans-query.dto';
-import { ReturnLoanDetailDto } from './dtos/return-loan-detail.dto';
-import { CancelLoanDto } from './dtos/cancel-loan.dto';
 import { ReturnedHistory } from 'src/entities/returned-history.entity';
+import { GetLoansInput } from './graphql/get-loans.input';
+import { CreateLoanInput } from './graphql/create-loan.input';
+import { ReturnDetailInput } from './graphql/return-detail.input';
+import { CancelLoanInput } from './graphql/cancel-loan.input';
 
 @Injectable()
 export class LoansService {
@@ -22,7 +22,7 @@ export class LoansService {
         private readonly lmsNotificationsService: LmsNotificationsService,
     ) { }
 
-    async findAll(query: GetLoansQueryDto) {
+    async findAll(query: GetLoansInput) {
         const pageNumber = query.page || 1;
         const pageSize = query.pageSize || 10;
 
@@ -137,7 +137,7 @@ export class LoansService {
         return this.mapLoanResponse(loan);
     }
 
-    async create(dto: CreateLoanDto) {
+    async create(dto: CreateLoanInput) {
         return this.dataSource.transaction(async manager => {
             const user = await manager.findOne(User, {
                 where: {
@@ -331,7 +331,7 @@ export class LoansService {
         });
     }
 
-    async returnLoanDetail(detailId: number, dto: ReturnLoanDetailDto) {
+    async returnLoanDetail(detailId: number, dto: ReturnDetailInput) {
         return this.dataSource.transaction(async manager => {
             const detail = await manager.findOne(LoanDetail, {
                 where: { id: detailId },
@@ -438,7 +438,7 @@ export class LoansService {
         });
     }
 
-    async cancelLoan(id: number, dto: CancelLoanDto) {
+    async cancelLoan(id: number, input: CancelLoanInput) {
         return this.dataSource.transaction(async manager => {
             const loan = await manager.findOne(Loan, {
                 where: { id },
@@ -456,7 +456,7 @@ export class LoansService {
             }
 
             loan.status = LoanStatus.CANCELLED;
-            loan.cancelled_reason = dto.cancelled_reason;
+            loan.cancelled_reason = input.cancelled_reason.trim();
             for (const detail of loan.loan_details) {
                 detail.status = LoanDetailStatus.CANCELLED;
                 await manager.save(LoanDetail, detail);
