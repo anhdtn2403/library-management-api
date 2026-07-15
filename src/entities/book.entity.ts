@@ -1,6 +1,7 @@
 import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
 import { LoanDetail } from "./loan-detail.entity";
 import { SubCategory } from "./sub-category.entity";
+import { UserFavoriteBook } from "./user-favorite-book.entity";
 
 @Entity('books')
 export class Book {
@@ -76,4 +77,10 @@ export class Book {
     @ManyToOne(() => SubCategory, subCategory => subCategory.books, { nullable: true })
     @JoinColumn({ name: 'sub_category_id' })
     sub_category?: SubCategory;
+
+    @OneToMany(
+        () => UserFavoriteBook,
+        favoriteBook => favoriteBook.book,
+    )
+    favorited_by_users!: UserFavoriteBook[];
 }

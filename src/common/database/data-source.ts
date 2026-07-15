@@ -9,6 +9,7 @@ import { LmsNotification } from '../../entities/lms-notification.entity';
 import { SubCategory } from '../../entities/sub-category.entity';
 import { Category } from '../../entities/category.entity';
 import { ReturnedHistory } from '../../entities/returned-history.entity';
+import { UserFavoriteBook } from '../../entities/user-favorite-book.entity';
 
 export const AppDataSource = new DataSource({
     type: 'postgres',
@@ -23,6 +24,7 @@ export const AppDataSource = new DataSource({
         User,
         Loan,
         LoanDetail,
+        UserFavoriteBook,
         ReturnedHistory,
         RolePermission,
         LmsNotification,

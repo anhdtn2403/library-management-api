@@ -55,6 +55,11 @@ export class AuthsService {
         if (!isPasswordValid) {
             throw new UnauthorizedException('Invalid email or password');
         }
+        if (!user.is_active) {
+            throw new UnauthorizedException(
+                'Your account has been deactivated',
+            );
+        }
 
         const payload = {
             sub: user.id,

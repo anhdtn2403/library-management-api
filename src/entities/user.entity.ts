@@ -2,6 +2,7 @@ import { Column, CreateDateColumn, Entity, OneToMany, PrimaryGeneratedColumn, Up
 import { Loan } from "./loan.entity";
 import { UserRole } from "../common/enums/user-role.enum";
 import { LmsNotification } from "./lms-notification.entity";
+import { UserFavoriteBook } from "./user-favorite-book.entity";
 
 @Entity('users')
 export class User {
@@ -49,5 +50,11 @@ export class User {
         () => LmsNotification,
         notification => notification.user
     )
-    notifications!: Notification[];
+    notifications!: LmsNotification[];
+
+    @OneToMany(
+        () => UserFavoriteBook,
+        favoriteBook => favoriteBook.user,
+    )
+    favorite_books!: UserFavoriteBook[];
 }

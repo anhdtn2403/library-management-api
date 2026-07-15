@@ -22,6 +22,8 @@ import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import './common/graphql/register-enums';
 import { ReturnedHistory } from './entities/returned-history.entity';
 import { UploadScalar } from './common/graphql/upload.scalar';
+import { UserFavoriteBook } from './entities/user-favorite-book.entity';
+import { UsersModule } from './modules/users/users.module';
 
 @Module({
   imports: [
@@ -50,6 +52,7 @@ import { UploadScalar } from './common/graphql/upload.scalar';
           User,
           Loan,
           LoanDetail,
+          UserFavoriteBook,
           ReturnedHistory,
           RolePermission,
           LmsNotification,
@@ -64,7 +67,8 @@ import { UploadScalar } from './common/graphql/upload.scalar';
     LoansModule,
     LmsNotificationsModule,
     CategoriesModule,
-    SubCategoriesModule
+    SubCategoriesModule,
+    UsersModule
   ],
   providers: [
     UploadScalar,
