@@ -25,11 +25,6 @@ export class CreateBookInput {
     @Field({ nullable: true })
     @IsOptional()
     @IsString()
-    image_url?: string;
-
-    @Field({ nullable: true })
-    @IsOptional()
-    @IsString()
     publisher?: string;
 
     @Field(() => Int, { nullable: true })

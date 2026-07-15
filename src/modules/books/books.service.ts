@@ -4,10 +4,13 @@ import { Book } from 'src/entities/book.entity';
 import { Not, Repository } from 'typeorm';
 import { SubCategory } from 'src/entities/sub-category.entity';
 import { join } from 'path';
-import { existsSync, unlinkSync } from 'fs';
+import { createWriteStream, existsSync, mkdirSync, unlinkSync } from 'fs';
 import { GetBooksInput } from './graphql/get-books.input';
 import { CreateBookInput } from './graphql/create-book.input';
 import { UpdateBookInput } from './graphql/update-book.input';
+import { FileUpload } from 'src/common/graphql/file-upload.type';
+import { randomUUID } from 'crypto';
+import { pipeline } from 'stream/promises';
 
 @Injectable()
 // @Injectable() báo cho NestJS biết class này là provider, 
@@ -220,11 +223,64 @@ export class BooksService {
         book.is_active = false;
         await this.bookRepository.save(book);
     }
+    async uploadImage(id: number, upload: Promise<FileUpload>) {
+        const book = await this.bookRepository.findOneBy({
+            id,
+        });
+        if (!book) {
+            throw new NotFoundException('Book not found');
+        }
 
-    async updateImage(
-        id: number,
-        filename: string,
-    ) {
+        const { filename: originalFilename, mimetype, createReadStream } = await upload;
+        console.log({
+            originalFilename,
+            mimetype,
+            createReadStream: typeof createReadStream,
+        });
+        const allowedMimeTypes = [
+            'image/jpg',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ];
+        if (!allowedMimeTypes.includes(mimetype)) {
+            throw new BadRequestException(
+                `Only JPG, JPEG, PNG and WEBP images are allowed. Received: ${mimetype}`,
+            );
+        }
+        const extensionByMimeType: Record<string, string> = {
+            'image/jpg': '.jpg',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/webp': '.webp',
+        };
+        const extension = extensionByMimeType[mimetype];
+        const filename = `${randomUUID()}${extension}`;
+
+        const uploadDirectory = join(process.cwd(), 'uploads', 'books');
+        if (!existsSync(uploadDirectory)) {
+            mkdirSync(uploadDirectory, {
+                recursive: true,
+            });
+        }
+        const filePath = join(uploadDirectory, filename,);
+
+        try {
+            await pipeline(createReadStream(), createWriteStream(filePath),);
+        } catch {
+            this.deleteFileIfExists(filePath);
+
+            throw new BadRequestException(
+                'Unable to save uploaded image',
+            );
+        }
+
+        return this.updateImage(
+            id,
+            filename,
+        );
+    }
+    async updateImage(id: number, filename: string) {
         const uploadedFilePath = join(
             process.cwd(),
             'uploads',

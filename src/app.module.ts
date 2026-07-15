@@ -21,6 +21,7 @@ import { GraphQLModule } from '@nestjs/graphql';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import './common/graphql/register-enums';
 import { ReturnedHistory } from './entities/returned-history.entity';
+import { UploadScalar } from './common/graphql/upload.scalar';
 
 @Module({
   imports: [
@@ -64,6 +65,9 @@ import { ReturnedHistory } from './entities/returned-history.entity';
     LmsNotificationsModule,
     CategoriesModule,
     SubCategoriesModule
-  ]
+  ],
+  providers: [
+    UploadScalar,
+  ],
 })
 export class AppModule { }

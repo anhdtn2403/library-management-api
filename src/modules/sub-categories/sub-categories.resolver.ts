@@ -17,7 +17,6 @@ import { UpdateSubCategoryInput } from './graphql/update-sub-category.input';
 import { SubCategoriesService } from './sub-categories.service';
 
 @Resolver(() => SubCategoryType)
-@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class SubCategoriesResolver {
     constructor(
         private readonly subCategoriesService: SubCategoriesService,
@@ -26,7 +25,6 @@ export class SubCategoriesResolver {
     @Query(() => [SubCategoryType], {
         name: 'subCategories',
     })
-    @RequirePermissions(UserPermission.SUB_CATEGORY_VIEW)
     findAll(
         @Args('categoryId', {
             type: () => Int,
@@ -40,7 +38,6 @@ export class SubCategoriesResolver {
     @Query(() => SubCategoryType, {
         name: 'subCategory',
     })
-    @RequirePermissions(UserPermission.SUB_CATEGORY_VIEW)
     findOne(
         @Args('id', { type: () => ID })
         id: number,
@@ -49,6 +46,7 @@ export class SubCategoriesResolver {
     }
 
     @Mutation(() => SubCategoryType)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.SUB_CATEGORY_CREATE)
     createSubCategory(
         @Args('input')
@@ -58,6 +56,7 @@ export class SubCategoriesResolver {
     }
 
     @Mutation(() => SubCategoryType)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.SUB_CATEGORY_UPDATE)
     updateSubCategory(
         @Args('id', { type: () => ID })
@@ -70,6 +69,7 @@ export class SubCategoriesResolver {
     }
 
     @Mutation(() => Boolean)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.SUB_CATEGORY_DELETE)
     async deleteSubCategory(
         @Args('id', { type: () => ID })

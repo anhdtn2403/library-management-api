@@ -66,7 +66,8 @@ export class SubCategoriesService {
             category_id: dto.category_id,
             name: dto.name.trim(),
         });
-        return this.subCategoryRepository.save(subCategory);
+        await this.subCategoryRepository.save(subCategory);
+        return this.findOne(subCategory.id);
     }
 
     async update(id: number, dto: UpdateSubCategoryInput) {

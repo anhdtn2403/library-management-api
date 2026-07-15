@@ -11,16 +11,16 @@ import { UserPermission } from "src/common/enums/user-permission.enum";
 import { GetBooksInput } from "./graphql/get-books.input";
 import { CreateBookInput } from "./graphql/create-book.input";
 import { UpdateBookInput } from "./graphql/update-book.input";
+import { FileUpload } from "src/common/graphql/file-upload.type";
+import { UploadScalar } from "src/common/graphql/upload.scalar";
 
 @Resolver(() => BookType)
-@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class BooksResolver {
-    constructor(private readonly booksService: BooksService) {}
+    constructor(private readonly booksService: BooksService) { }
 
     @Query(() => BooksPageType, {
         name: 'books',
     })
-    @RequirePermissions(UserPermission.BOOK_VIEW)
     findAll(
         @Args('query', {
             type: () => GetBooksInput,
@@ -34,7 +34,6 @@ export class BooksResolver {
     @Query(() => BookType, {
         name: 'book',
     })
-    @RequirePermissions(UserPermission.BOOK_VIEW)
     findOne(
         @Args('id', { type: () => ID })
         id: number,
@@ -43,6 +42,7 @@ export class BooksResolver {
     }
 
     @Mutation(() => BookType)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.BOOK_CREATE)
     createBook(
         @Args('input')
@@ -52,6 +52,7 @@ export class BooksResolver {
     }
 
     @Mutation(() => BookType)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.BOOK_UPDATE)
     updateBook(
         @Args('id', { type: () => ID })
@@ -64,6 +65,7 @@ export class BooksResolver {
     }
 
     @Mutation(() => Boolean)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.BOOK_DELETE)
     async deleteBook(
         @Args('id', { type: () => ID })
@@ -71,5 +73,15 @@ export class BooksResolver {
     ) {
         await this.booksService.remove(Number(id));
         return true;
+    }
+
+    @Mutation(() => BookType)
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
+    @RequirePermissions(UserPermission.BOOK_UPDATE)
+    updateBookImage(
+        @Args('id', { type: () => ID }) id: number,
+        @Args('image', { type: () => UploadScalar }) image: unknown,
+    ) {
+        return this.booksService.uploadImage(Number(id), image as Promise<FileUpload>);
     }
 }

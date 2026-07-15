@@ -333,18 +333,22 @@ export class LoansService {
 
     async returnLoanDetail(detailId: number, dto: ReturnDetailInput) {
         return this.dataSource.transaction(async manager => {
-            const detail = await manager.findOne(LoanDetail, {
-                where: { id: detailId },
-                relations: {
-                    loan: {
-                        loan_details: true,
-                    },
-                    book: true,
-                },
-                lock: {
-                    mode: 'pessimistic_write',
-                },
+            const detail = await manager
+                .createQueryBuilder(LoanDetail, 'detail')
+                .setLock('pessimistic_write')
+                .where('detail.id = :detailId', { detailId })
+                .getOne();
+
+            if (!detail) {
+                throw new NotFoundException('Loan detail not found');
+            }
+            const book = await manager.findOne(Book, {
+                where: { id: detail.book_id },
             });
+            if (!book) {
+                throw new NotFoundException('Book not found');
+            }
+
             if (!detail) throw new NotFoundException('Loan detail not found');
             if (![LoanDetailStatus.BORROWING, LoanDetailStatus.OVERDUE].includes(detail.status)) {
                 throw new BadRequestException(
@@ -430,9 +434,9 @@ export class LoansService {
             }
             await manager.save(LoanDetail, detail);
 
-            detail.book.borrowed_quantity = Math.max(detail.book.borrowed_quantity - processedQuantity, 0);
-            detail.book.total_quantity = Math.max(detail.book.total_quantity - lostQuantity, 0);
-            await manager.save(Book, detail.book);
+            book.borrowed_quantity = Math.max(book.borrowed_quantity - processedQuantity, 0);
+            book.total_quantity = Math.max(book.total_quantity - lostQuantity, 0);
+            await manager.save(Book, book);
 
             await this.recalculateLoanAfterReturn(detail.loan_id, manager);
         });

@@ -10,29 +10,28 @@ import { CreateCategoryInput } from "./graphql/create-category.input";
 import { UpdateCategoryInput } from "./graphql/update-category.input";
 
 @Resolver(() => CategoryType)
-@UseGuards(JwtAuthGuard, PermissionsGuard)
 export class CategoriesResolver {
     constructor(private readonly categoriesService: CategoriesService) { }
 
     @Query(() => [CategoryType], { name: "categories" })
-    @RequirePermissions(UserPermission.CATEGORY_VIEW)
     findAllCategories() {
         return this.categoriesService.findAll();
     }
 
     @Query(() => CategoryType, { name: "category" })
-    @RequirePermissions(UserPermission.CATEGORY_VIEW)
     findOneCategory(@Args("id", { type: () => ID }) id: number) {
         return this.categoriesService.findOne(Number(id));
     }
 
     @Mutation(() => CategoryType, { name: "createCategory" })
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.CATEGORY_CREATE)
     createCategory(@Args("input") input: CreateCategoryInput) {
         return this.categoriesService.create(input);
     }
 
     @Mutation(() => CategoryType, { name: "updateCategory" })
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.CATEGORY_UPDATE)
     updateCategory(
         @Args("id", { type: () => ID }) id: number,
@@ -42,6 +41,7 @@ export class CategoriesResolver {
     }
 
     @Mutation(() => Boolean, { name: "deleteCategory" })
+    @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.CATEGORY_DELETE)
     async deleteCategory(@Args("id", { type: () => ID }) id: number) {
         await this.categoriesService.remove(Number(id));
