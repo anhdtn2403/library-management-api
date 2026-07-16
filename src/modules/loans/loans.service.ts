@@ -12,6 +12,8 @@ import { GetLoansInput } from './graphql/get-loans.input';
 import { CreateLoanInput } from './graphql/create-loan.input';
 import { ReturnDetailInput } from './graphql/return-detail.input';
 import { CancelLoanInput } from './graphql/cancel-loan.input';
+import { type CurrentUserData } from 'src/common/decorators/current-user.decorator';
+import { UserRole } from 'src/common/enums/user-role.enum';
 
 @Injectable()
 export class LoansService {
@@ -22,7 +24,7 @@ export class LoansService {
         private readonly lmsNotificationsService: LmsNotificationsService,
     ) { }
 
-    async findAll(query: GetLoansInput) {
+    async findAll(currentUser: CurrentUserData, query: GetLoansInput) {
         const pageNumber = query.page || 1;
         const pageSize = query.pageSize || 10;
 
@@ -76,16 +78,27 @@ export class LoansService {
                 'returnedHistory.extra_payment_amount',
                 'returnedHistory.note',
             ]);
+        if (currentUser.role === UserRole.MEMBER) {
+            qb.andWhere(
+                'loan.user_id = :currentUserId',
+                {
+                    currentUserId:
+                        currentUser.userId,
+                },
+            );
+        }
+        else if (query.user_id !== undefined) {
+            qb.andWhere(
+                'loan.user_id = :userId',
+                {
+                    userId: query.user_id,
+                },
+            );
+        }
 
         if (query.status) {
             qb.andWhere('loan.status = :status', {
                 status: query.status,
-            });
-        }
-
-        if (query.user_id !== undefined) {
-            qb.andWhere('loan.user_id = :user_id', {
-                user_id: query.user_id,
             });
         }
 
@@ -117,31 +130,33 @@ export class LoansService {
         };
     }
 
-    async findOne(id: number) {
-        const loan = await this.loanRepository
-            .findOne({
-                where: { id },
-                relations: {
-                    user: true,
-                    loan_details: {
-                        book: true,
-                        returned_histories: true
-                    },
+    async findOne(currentUser: CurrentUserData, id: number) {
+        const qb = this.loanRepository
+            .createQueryBuilder('loan')
+            .leftJoinAndSelect('loan.user', 'user')
+            .leftJoinAndSelect('loan.loan_details', 'detail')
+            .leftJoinAndSelect('detail.book', 'book')
+            .where('loan.id = :id', { id });
+        if (currentUser.role === UserRole.MEMBER) {
+            qb.andWhere(
+                'loan.user_id = :currentUserId',
+                {
+                    currentUserId: currentUser.userId,
                 },
-            });
-
+            );
+        }
+        const loan = await qb.getOne();
         if (!loan) {
             throw new NotFoundException('Loan not found');
         }
-
         return this.mapLoanResponse(loan);
     }
 
-    async create(dto: CreateLoanInput) {
+    async create(userId: number, dto: CreateLoanInput) {
         return this.dataSource.transaction(async manager => {
             const user = await manager.findOne(User, {
                 where: {
-                    id: dto.user_id,
+                    id: userId,
                     is_active: true,
                 },
             });
@@ -150,7 +165,7 @@ export class LoansService {
             }
 
             const loan = manager.create(Loan, {
-                user_id: dto.user_id,
+                user_id: userId,
                 status: LoanStatus.PENDING,
             });
             const savedLoan = await manager.save(Loan, loan);
@@ -442,14 +457,22 @@ export class LoansService {
         });
     }
 
-    async cancelLoan(id: number, input: CancelLoanInput) {
+    async cancelLoan(id: number, input: CancelLoanInput, currentUser: CurrentUserData) {
         return this.dataSource.transaction(async manager => {
-            const loan = await manager.findOne(Loan, {
-                where: { id },
-                relations: {
-                    loan_details: true,
-                },
-            });
+            const qb = manager.getRepository(Loan)
+                .createQueryBuilder('loan')
+                .leftJoinAndSelect('loan.loan_details', 'detail')
+                .where('loan.id = :id', { id });
+
+            if (currentUser.role === UserRole.MEMBER) {
+                qb.andWhere(
+                    'loan.user_id = :userId',
+                    {
+                        userId: currentUser.userId,
+                    },
+                );
+            }
+            const loan = await qb.getOne();
             if (!loan) {
                 throw new NotFoundException('Loan not found');
             }
@@ -458,13 +481,12 @@ export class LoansService {
                     'Only PENDING or PENDING_PAYMENT loan can be cancelled',
                 );
             }
-
             loan.status = LoanStatus.CANCELLED;
             loan.cancelled_reason = input.cancelled_reason.trim();
             for (const detail of loan.loan_details) {
                 detail.status = LoanDetailStatus.CANCELLED;
-                await manager.save(LoanDetail, detail);
             }
+            await manager.save(LoanDetail, loan.loan_details);
             await manager.save(Loan, loan);
         });
     }

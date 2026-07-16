@@ -8,6 +8,7 @@ import { InjectRepository } from "@nestjs/typeorm";
 import { ExtractJwt, Strategy } from "passport-jwt";
 import { User } from "src/entities/user.entity";
 import { Repository } from "typeorm";
+import { UserRole } from "../enums/user-role.enum";
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
@@ -23,7 +24,11 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         });
     }
 
-    async validate(payload: any) {
+    async validate(payload: {
+        sub: number;
+        email: string;
+        role: UserRole;
+    }) {
         const user =
             await this.userRepository.findOneBy({
                 id: payload.sub,
@@ -35,9 +40,9 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             );
         }
         return {
-            userId: payload.sub,
-            email: payload.email,
-            role: payload.role,
+            userId: user.id,
+            email: user.email,
+            role: user.role,
         };
     }
 }

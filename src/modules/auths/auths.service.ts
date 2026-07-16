@@ -79,26 +79,35 @@ export class AuthsService {
     }
 
     async refresh(refreshToken: string) {
+        let payload;
         try {
-            const payload = this.jwtService.verify(
+            payload = await this.jwtService.verifyAsync(
                 refreshToken,
                 {
-                    secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET'),
-                },
+                    secret: this.configService.getOrThrow<string>('JWT_REFRESH_SECRET',),
+                }
             );
-            const newPayload = {
-                sub: payload.sub,
-                email: payload.email,
-                role: payload.role,
-            };
-            const accessToken = this.jwtService.sign(newPayload);
-            return {
-                access_token: accessToken,
-            };
         } catch {
             throw new UnauthorizedException(
                 'Invalid refresh token',
             );
         }
+
+        const user = await this.userRepository.findOneBy({ id: payload.sub });
+        if (!user || !user.is_active) {
+            throw new UnauthorizedException(
+                'Account is inactive or does not exist',
+            );
+        }
+
+        const newPayload = {
+            sub: user.id,
+            email: user.email,
+            role: user.role,
+        };
+        return {
+            access_token:
+                this.jwtService.sign(newPayload),
+        };
     }
 }

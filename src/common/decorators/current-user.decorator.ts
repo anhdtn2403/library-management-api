@@ -1,10 +1,11 @@
 import { createParamDecorator, ExecutionContext } from "@nestjs/common";
 import { GqlExecutionContext } from "@nestjs/graphql";
+import { UserRole } from "../enums/user-role.enum";
 
 export interface CurrentUserData {
     userId: number;
     email: string;
-    role: string;
+    role: UserRole;
 }
 
 export const CurrentUser = createParamDecorator(

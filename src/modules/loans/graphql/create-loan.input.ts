@@ -21,10 +21,6 @@ export class CreateLoanItemInput {
 
 @InputType()
 export class CreateLoanInput {
-    @Field(() => Int)
-    @IsInt()
-    user_id!: number;
-
     @Field(() => [CreateLoanItemInput])
     @IsArray()
     @ArrayMinSize(1)

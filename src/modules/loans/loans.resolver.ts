@@ -11,7 +11,7 @@ import { GetLoansInput } from "./graphql/get-loans.input";
 import { CreateLoanInput } from "./graphql/create-loan.input";
 import { ReturnDetailInput } from "./graphql/return-detail.input";
 import { CancelLoanInput } from "./graphql/cancel-loan.input";
-
+import { CurrentUser, type CurrentUserData } from "src/common/decorators/current-user.decorator";
 @Resolver(() => LoanType)
 @UseGuards(JwtAuthGuard, PermissionsGuard)
 export class LoansResolver {
@@ -22,35 +22,28 @@ export class LoansResolver {
     })
     @RequirePermissions(UserPermission.LOAN_VIEW)
     findAll(
-        @Args('query', {
-            type: () => GetLoansInput,
-            nullable: true,
-        })
-        query?: GetLoansInput,
+        @CurrentUser() currentUser: CurrentUserData,
+        @Args('query', { type: () => GetLoansInput, nullable: true }) query?: GetLoansInput,
     ) {
-        return this.loansService.findAll(
-            query ?? new GetLoansInput(),
-        );
+        return this.loansService.findAll(currentUser, query ?? new GetLoansInput());
     }
 
-    @Query(() => LoanType, {
-        name: 'loan',
-    })
+    @Query(() => LoanType, { name: 'loan', })
     @RequirePermissions(UserPermission.LOAN_VIEW)
     findOne(
-        @Args('id', { type: () => ID })
-        id: number,
+        @CurrentUser() currentUser: CurrentUserData,
+        @Args('id', { type: () => Int }) id: number,
     ) {
-        return this.loansService.findOne(Number(id));
+        return this.loansService.findOne(currentUser, Number(id));
     }
 
     @Mutation(() => LoanType)
     @RequirePermissions(UserPermission.LOAN_CREATE)
     createLoan(
-        @Args('input')
-        input: CreateLoanInput,
+        @CurrentUser() currentUser: CurrentUserData,
+        @Args('input') input: CreateLoanInput
     ) {
-        return this.loansService.create(input);
+        return this.loansService.create(currentUser.userId, input);
     }
 
     @Mutation(() => Boolean)
@@ -66,8 +59,7 @@ export class LoansResolver {
     @Mutation(() => Boolean)
     @RequirePermissions(UserPermission.LOAN_BORROWING)
     async payAndBorrow(
-        @Args('id', { type: () => ID })
-        id: number,
+        @Args('id', { type: () => ID }) id: number,
     ) {
         await this.loansService.payAndBorrow(Number(id));
         return true;
@@ -85,14 +77,11 @@ export class LoansResolver {
     @Mutation(() => Boolean)
     @RequirePermissions(UserPermission.LOAN_CANCEL)
     async cancelLoan(
-        @Args('id', { type: () => ID })
-        id: number,
-
-        @Args('input')
-        input: CancelLoanInput
+        @CurrentUser() currentUser: CurrentUserData,
+        @Args('id', { type: () => ID }) id: number,
+        @Args('input') input: CancelLoanInput
     ) {
-        await this.loansService.cancelLoan(Number(id), input);
-
+        await this.loansService.cancelLoan(Number(id), input, currentUser);
         return true;
     }
 }

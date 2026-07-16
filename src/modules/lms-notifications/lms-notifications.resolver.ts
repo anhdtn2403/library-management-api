@@ -4,6 +4,7 @@ import { UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { LmsNotificationsService } from "./lms-notifications.service";
 import { MarkNotificationsReadResultType } from "./graphql/mark-notifications-read.type";
+import { CurrentUser, type CurrentUserData } from "src/common/decorators/current-user.decorator";
 
 @Resolver(() => LmsNotificationType)
 @UseGuards(JwtAuthGuard)
@@ -14,19 +15,19 @@ export class LmsNotificationsResolver {
 
     @Query(() => [LmsNotificationType])
     notificationsByUser(
-        @Args('userId', { type: () => ID })
-        userId: number,
+        @CurrentUser() currentUser: CurrentUserData
     ) {
-        return this.notificationsService.findByUser(Number(userId));
+        return this.notificationsService.findByUser(currentUser.userId);
     }
 
     @Mutation(() => MarkNotificationsReadResultType)
     markNotificationsAsRead(
-        @Args('ids', { type: () => [ID] })
-        ids: number[],
+        @CurrentUser() currentUser: CurrentUserData,
+        @Args('ids', { type: () => [ID] }) ids: number[],
     ) {
         return this.notificationsService.markAsRead(
-            ids.map(Number),
+            currentUser.userId,
+            ids.map(Number)
         );
     }
 }

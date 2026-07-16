@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { NotificationType } from 'src/common/enums/notification-type.enum';
 import { LmsNotification } from 'src/entities/lms-notification.entity';
-import { EntityManager, In, Repository } from 'typeorm';
+import { EntityManager, Repository } from 'typeorm';
 
 @Injectable()
 // This decorator makes the service injectable into other components like controllers or other services. 
@@ -38,15 +38,28 @@ export class LmsNotificationsService {
         });
     }
 
-    async markAsRead(ids: number[]) {
-        await this.repo.update(
-            {
-                id: In(ids),
-            },
-            {
+    async markAsRead(userId: number, ids: number[]) {
+        if (ids.length === 0) {
+            return {
+                message:
+                    'No notifications were selected',
+                ids: [],
+            };
+        }
+        await this.repo
+            .createQueryBuilder()
+            .update(LmsNotification)
+            .set({
                 is_read: true,
-            },
-        );
+            })
+            .where('id IN (:...ids)', {
+                ids,
+            })
+            .andWhere('user_id = :userId', {
+                userId,
+            })
+            .execute();
+
 
         return {
             message: 'Notifications marked as read',
