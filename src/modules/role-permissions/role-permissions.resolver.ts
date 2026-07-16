@@ -10,7 +10,6 @@ import { UpdateRolePermissionsInput } from "./graphql/update-role-permissions.in
 
 @Resolver(() => RolePermissionType)
 @UseGuards(JwtAuthGuard, RolesGuard)
-@Roles(UserRole.ADMIN)
 export class RolePermissionsResolver {
     constructor(
         private readonly rolePermissionsService: RolePermissionsService,
@@ -30,6 +29,7 @@ export class RolePermissionsResolver {
     }
 
     @Mutation(() => [RolePermissionType])
+    @Roles(UserRole.ADMIN)
     updateRolePermissions(
         @Args('role', { type: () => UserRole })
         role: UserRole,
