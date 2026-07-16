@@ -33,51 +33,7 @@ export class LoansService {
             .leftJoinAndSelect('loan.user', 'user')
             .leftJoinAndSelect('loan.loan_details', 'detail')
             .leftJoinAndSelect('detail.book', 'book')
-            .leftJoinAndSelect('detail.returned_histories', 'returnedHistory')
-            .select([
-                'loan.id',
-                'loan.loan_date',
-                'loan.status',
-                'loan.total_initial_payment',
-                'loan.total_deposit_refund',
-                'loan.total_extra_payment',
-                'loan.cancelled_reason',
-
-                'user.id',
-                'user.full_name',
-                'user.email',
-
-                'detail.id',
-                'detail.quantity',
-                'detail.borrow_days',
-                'detail.due_date',
-                'detail.status',
-                'detail.completed_at',
-                'detail.deposit_amount',
-                'detail.rental_fee',
-                'detail.fine_amount',
-                'detail.returned_quantity',
-                'detail.lost_quantity',
-                'detail.lost_fee',
-                'detail.deposit_refund_amount',
-                'detail.extra_payment_amount',
-
-                'book.id',
-                'book.title',
-                'book.author',
-                'book.image_url',
-
-                'returnedHistory.id',
-                'returnedHistory.return_date',
-                'returnedHistory.return_quantity',
-                'returnedHistory.lost_quantity',
-                'returnedHistory.late_days',
-                'returnedHistory.fine_amount',
-                'returnedHistory.lost_fee',
-                'returnedHistory.deposit_refund_amount',
-                'returnedHistory.extra_payment_amount',
-                'returnedHistory.note',
-            ]);
+            .leftJoinAndSelect('detail.returned_histories', 'returnedHistory');
         if (currentUser.role === UserRole.MEMBER) {
             qb.andWhere(
                 'loan.user_id = :currentUserId',
@@ -136,6 +92,7 @@ export class LoansService {
             .leftJoinAndSelect('loan.user', 'user')
             .leftJoinAndSelect('loan.loan_details', 'detail')
             .leftJoinAndSelect('detail.book', 'book')
+            .leftJoinAndSelect('detail.returned_histories', 'returnedHistory')
             .where('loan.id = :id', { id });
         if (currentUser.role === UserRole.MEMBER) {
             qb.andWhere(
@@ -622,12 +579,12 @@ export class LoansService {
         const details = loan.loan_details;
         loan.total_deposit_refund = details.reduce(
             (sum, detail) =>
-                sum + Number(detail.deposit_refund_amount),
+                sum + Number(detail.deposit_refund_amount || 0),
             0,
         );
         loan.total_extra_payment = details.reduce(
             (sum, detail) =>
-                sum + Number(detail.extra_payment_amount),
+                sum + Number(detail.extra_payment_amount || 0),
             0,
         );
 

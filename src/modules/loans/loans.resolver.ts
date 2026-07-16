@@ -1,4 +1,4 @@
-import { Args, ID, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { Args, ID, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { LoanType } from "./graphql/loan.type";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
 import { UseGuards } from "@nestjs/common";
@@ -32,7 +32,7 @@ export class LoansResolver {
     @RequirePermissions(UserPermission.LOAN_VIEW)
     findOne(
         @CurrentUser() currentUser: CurrentUserData,
-        @Args('id', { type: () => Int }) id: number,
+        @Args('id', { type: () => ID }) id: number,
     ) {
         return this.loansService.findOne(currentUser, Number(id));
     }

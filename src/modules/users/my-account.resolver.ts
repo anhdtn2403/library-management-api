@@ -1,4 +1,4 @@
-import { Args, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { Args, ID, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { UserType } from "./graphql/user.type";
 import { UseGuards } from "@nestjs/common";
 import { JwtAuthGuard } from "src/common/guards/jwt-auth.guard";
@@ -46,7 +46,7 @@ export class MyAccountResolver {
     @Query(() => Boolean, { name: 'isMyFavoriteBook', })
     isMyFavoriteBook(
         @CurrentUser() currentUser: CurrentUserData,
-        @Args('bookId', { type: () => Int, }) bookId: number,
+        @Args('bookId', { type: () => ID }) bookId: number,
     ) {
         return this.favoriteBooksService.isFavorite(currentUser.userId, Number(bookId));
     }
@@ -54,7 +54,7 @@ export class MyAccountResolver {
     @Mutation(() => Boolean)
     addMyFavoriteBook(
         @CurrentUser() currentUser: CurrentUserData,
-        @Args('bookId', { type: () => Int, }) bookId: number
+        @Args('bookId', { type: () => ID }) bookId: number
     ) {
         return this.favoriteBooksService.add(currentUser.userId, Number(bookId));
     }
@@ -62,7 +62,7 @@ export class MyAccountResolver {
     @Mutation(() => Boolean)
     removeMyFavoriteBook(
         @CurrentUser() currentUser: CurrentUserData,
-        @Args('bookId', { type: () => Int }) bookId: number
+        @Args('bookId', { type: () => ID }) bookId: number
     ) {
         return this.favoriteBooksService.remove(currentUser.userId, Number(bookId));
     }

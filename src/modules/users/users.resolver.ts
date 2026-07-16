@@ -1,4 +1,4 @@
-import { Args, Int, Mutation, Query, Resolver } from "@nestjs/graphql";
+import { Args, ID, Mutation, Query, Resolver } from "@nestjs/graphql";
 import { UserType } from "./graphql/user.type";
 import { UsersService } from "./users.service";
 import { UsersPageType } from "./graphql/users-page.type";
@@ -30,7 +30,7 @@ export class UsersResolver {
     @Query(() => UserType, { name: 'user' })
     @UseGuards(JwtAuthGuard, PermissionsGuard)
     @RequirePermissions(UserPermission.USER_VIEW)
-    findOne(@Args('id', { type: () => Int }) id: number) {
+    findOne(@Args('id', { type: () => ID }) id: number) {
         return this.usersService.findOne(Number(id));
     }
 
@@ -39,7 +39,7 @@ export class UsersResolver {
     @RequirePermissions(UserPermission.USER_UPDATE_ROLE)
     updateUserRole(
         @CurrentUser() currentUser: CurrentUserData,
-        @Args('id', { type: () => Int }) id: number,
+        @Args('id', { type: () => ID }) id: number,
         @Args('input') input: UpdateUserRoleInput
     ) {
         return this.usersService.updateRole(
@@ -54,7 +54,7 @@ export class UsersResolver {
     @RequirePermissions(UserPermission.USER_UPDATE_STATUS)
     updateUserStatus(
         @CurrentUser() currentUser: CurrentUserData,
-        @Args('id', { type: () => Int }) id: number,
+        @Args('id', { type: () => ID }) id: number,
         @Args('input') input: UpdateUserStatusInput
     ) {
         return this.usersService.updateStatus(
