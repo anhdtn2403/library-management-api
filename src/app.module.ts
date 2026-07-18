@@ -24,6 +24,7 @@ import { ReturnedHistory } from './entities/returned-history.entity';
 import { UploadScalar } from './common/graphql/upload.scalar';
 import { UserFavoriteBook } from './entities/user-favorite-book.entity';
 import { UsersModule } from './modules/users/users.module';
+import { DashboardModule } from './modules/dashboard/dashboard.module';
 
 @Module({
   imports: [
@@ -68,7 +69,8 @@ import { UsersModule } from './modules/users/users.module';
     LmsNotificationsModule,
     CategoriesModule,
     SubCategoriesModule,
-    UsersModule
+    UsersModule,
+    DashboardModule
   ],
   providers: [
     UploadScalar,
