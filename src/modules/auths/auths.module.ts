@@ -7,6 +7,7 @@ import { JwtModule } from '@nestjs/jwt';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import { JwtStrategy } from 'src/common/strategies/jwt.strategy';
 import { AuthsResolver } from './auths.resolver';
+import { MailModule } from '../mail/mail.module';
 
 @Module({
   imports: [
@@ -30,7 +31,7 @@ import { AuthsResolver } from './auths.resolver';
         },
       }),
     }),
-
+    MailModule
   ],
   providers: [AuthsService, JwtStrategy, AuthsResolver],
 })

@@ -35,9 +35,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             });
 
         if (!user || !user.is_active) {
-            throw new UnauthorizedException(
-                'Account is inactive or does not exist',
-            );
+            throw new UnauthorizedException('Account is inactive or does not exist');
+        }
+        if (!user.is_email_verified) {
+            throw new UnauthorizedException('Email has not been verified');
         }
         return {
             userId: user.id,

@@ -25,6 +25,7 @@ import { UploadScalar } from './common/graphql/upload.scalar';
 import { UserFavoriteBook } from './entities/user-favorite-book.entity';
 import { UsersModule } from './modules/users/users.module';
 import { DashboardModule } from './modules/dashboard/dashboard.module';
+import { MailModule } from './modules/mail/mail.module';
 
 @Module({
   imports: [
@@ -70,7 +71,8 @@ import { DashboardModule } from './modules/dashboard/dashboard.module';
     CategoriesModule,
     SubCategoriesModule,
     UsersModule,
-    DashboardModule
+    DashboardModule,
+    MailModule
   ],
   providers: [
     UploadScalar,

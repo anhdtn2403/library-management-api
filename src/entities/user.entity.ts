@@ -34,6 +34,30 @@ export class User {
     @Column({ default: true })
     is_active!: boolean;
 
+    @Column({
+        type: 'boolean',
+        default: false,
+    })
+    is_email_verified!: boolean;
+
+    @Column({
+        type: 'varchar',
+        length: 64,
+        nullable: true,
+        select: false
+        // TypeORM sẽ không tự lấy hai field nhạy cảm này trong các truy vấn thông thường như repository.findOneBy(...), repository.find(...)
+        // Khi cần kiểm tra token, bạn phải chủ động thêm: .addSelect(...)
+        // Điều này giảm nguy cơ vô tình trả token hash qua GraphQL.
+    })
+    email_verification_token_hash?: string | null;
+
+    @Column({
+        type: 'timestamp',
+        nullable: true,
+        select: false,
+    })
+    email_verification_expires_at?: Date | null;
+
     @CreateDateColumn()
     created_at!: Date;
 

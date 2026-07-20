@@ -33,6 +33,9 @@ export class RegisteredUserType {
     is_active!: boolean;
 
     @Field()
+    is_email_verified!: boolean;
+
+    @Field()
     created_at!: Date;
 
     @Field()

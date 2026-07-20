@@ -29,6 +29,7 @@ export class UsersService {
                 'user.avatar',
                 'user.role',
                 'user.is_active',
+                'user.is_email_verified',
                 'user.created_at',
                 'user.updated_at',
             ]);
@@ -101,6 +102,7 @@ export class UsersService {
                     avatar: true,
                     role: true,
                     is_active: true,
+                    is_email_verified: true,
                     created_at: true,
                     updated_at: true,
                 },
@@ -124,45 +126,32 @@ export class UsersService {
         input: UpdateProfileInput,
     ) {
         const user =
-            await this.userRepository.findOneBy({
-                id: userId,
-            });
-
+            await this.userRepository.findOneBy({ id: userId });
         if (!user) {
-            throw new NotFoundException(
-                'User not found',
-            );
+            throw new NotFoundException('User not found');
         }
-
         if (input.email !== undefined) {
-            const email = input.email
-                .trim()
-                .toLowerCase();
-
-            const existingEmail =
-                await this.userRepository.findOne({
-                    where: {
-                        email,
-                        id: Not(userId),
-                    },
-                });
-
+            const email = input.email.trim().toLowerCase();
+            const existingEmail = await this.userRepository.findOne({
+                where: {
+                    email,
+                    id: Not(userId),
+                }
+            });
             if (existingEmail) {
-                throw new BadRequestException(
-                    'Email already exists',
-                );
+                throw new BadRequestException('Email already exists');
             }
-
-            user.email = email;
+            if (user.email.toLowerCase() !== email) {
+                user.email = email;
+                user.is_email_verified = false; // sau đó user cần gọi resendVerificationEmail để xác thực email mới
+                user.email_verification_token_hash = null;
+                user.email_verification_expires_at = null;
+            }
         }
-
         if (input.full_name !== undefined) {
-            user.full_name =
-                input.full_name.trim();
+            user.full_name = input.full_name.trim();
         }
-
         await this.userRepository.save(user);
-
         return this.findOne(userId);
     }
 
