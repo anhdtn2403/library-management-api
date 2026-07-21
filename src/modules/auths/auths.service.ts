@@ -97,6 +97,8 @@ export class AuthsService {
             throw new BadRequestException('Verification token has expired');
         }
         user.is_email_verified = true;
+        user.email_verification_token_hash = null;
+        user.email_verification_expires_at = null;
         await this.userRepository.save(user);
         return {
             message: 'Email verified successfully'
@@ -216,6 +218,90 @@ export class AuthsService {
         };
     }
 
+    async forgotPassword(inputEmail: string) {
+        const email = inputEmail.trim().toLowerCase();
+        const user =
+            await this.userRepository
+                .createQueryBuilder('user')
+                .addSelect(
+                    'user.password_reset_token_hash',
+                )
+                .addSelect(
+                    'user.password_reset_expires_at',
+                )
+                .where(
+                    'LOWER(user.email) = :email',
+                    {
+                        email,
+                    },
+                )
+                .getOne();
+        // Luôn trả cùng một message,
+        // không tiết lộ email có tồn tại hay không.
+        const response = { message: 'If the email exists, a password reset email has been sent' };
+        if (!user) {
+            return response;
+        }
+        if (!user.is_active) {
+            return response;
+        }
+        if (!user.is_email_verified) {
+            return response;
+        }
+        const { rawToken, tokenHash, expiresAt } = this.createPasswordResetToken();
+        user.password_reset_token_hash = tokenHash;
+        user.password_reset_expires_at = expiresAt;
+        await this.userRepository.save(user);
+        await this.mailService.sendPasswordResetEmail(user.email, user.full_name, rawToken);
+        return response;
+    }
+    async resetPassword(rawToken: string, newPassword: string, confirmPassword: string) {
+        if (newPassword !== confirmPassword) {
+            throw new BadRequestException('Password confirmation does not match');
+        }
+        const token = rawToken.trim();
+        if (!token) {
+            throw new BadRequestException('Reset token is required',);
+        }
+        const tokenHash = this.hashToken(token);
+        const user = await this.userRepository
+            .createQueryBuilder('user')
+            .addSelect(
+                'user.password_reset_token_hash',
+            )
+            .addSelect(
+                'user.password_reset_expires_at',
+            )
+            .where(
+                'user.password_reset_token_hash = :tokenHash',
+                {
+                    tokenHash,
+                },
+            )
+            .getOne();
+        if (!user) {
+            throw new BadRequestException('Invalid password reset token');
+        }
+        if (
+            !user.password_reset_expires_at || user.password_reset_expires_at.getTime() < Date.now()) {
+            throw new BadRequestException('Password reset token has expired');
+        }
+        if (!user.is_active) {
+            throw new UnauthorizedException('Your account has been deactivated');
+        }
+        const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+        if (isSamePassword) {
+            throw new BadRequestException('New password must be different from the current password');
+        }
+        user.password_hash = await bcrypt.hash(newPassword, 10);
+
+        // Token chỉ dùng một lần.
+        user.password_reset_token_hash = null;
+        user.password_reset_expires_at = null;
+        await this.userRepository.save(user);
+        return { message: 'Password reset successfully' };
+    }
+
     private createEmailVerificationToken(): {
         rawToken: string;
         tokenHash: string;
@@ -224,6 +310,21 @@ export class AuthsService {
         const rawToken = randomBytes(32).toString('hex');
         const tokenHash = this.hashToken(rawToken);
         const expiresInMinutes = this.configService.get<number>('EMAIL_VERIFICATION_EXPIRES_MINUTES', 30);
+        const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
+        return {
+            rawToken,
+            tokenHash,
+            expiresAt,
+        };
+    }
+    private createPasswordResetToken(): {
+        rawToken: string;
+        tokenHash: string;
+        expiresAt: Date;
+    } {
+        const rawToken = randomBytes(32).toString('hex');
+        const tokenHash = this.hashToken(rawToken);
+        const expiresInMinutes = this.configService.get<number>('PASSWORD_RESET_EXPIRES_MINUTES', 15);
         const expiresAt = new Date(Date.now() + expiresInMinutes * 60 * 1000);
         return {
             rawToken,

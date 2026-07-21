@@ -6,6 +6,12 @@ import { GetUsersInput } from './graphql/get-users.input';
 import { UpdateProfileInput } from './graphql/update-profile.input';
 import { UpdateUserRoleInput } from './graphql/update-user-role.input';
 import { UpdateUserStatusInput } from './graphql/update-user-status.input';
+import { FileUpload } from 'src/common/graphql/file-upload.type';
+import { randomUUID } from 'crypto';
+import { join } from 'path';
+import { createWriteStream, existsSync, mkdirSync, unlinkSync } from 'fs';
+import { pipeline } from 'stream/promises';
+import * as bcrypt from 'bcrypt';
 
 @Injectable()
 export class UsersService {
@@ -121,10 +127,7 @@ export class UsersService {
         return this.findOne(userId);
     }
 
-    async updateMyProfile(
-        userId: number,
-        input: UpdateProfileInput,
-    ) {
+    async updateMyProfile(userId: number, input: UpdateProfileInput) {
         const user =
             await this.userRepository.findOneBy({ id: userId });
         if (!user) {
@@ -155,11 +158,7 @@ export class UsersService {
         return this.findOne(userId);
     }
 
-    async updateRole(
-        currentUserId: number,
-        targetUserId: number,
-        input: UpdateUserRoleInput,
-    ) {
+    async updateRole(currentUserId: number, targetUserId: number, input: UpdateUserRoleInput) {
         const targetUser =
             await this.userRepository.findOneBy({
                 id: targetUserId,
@@ -186,11 +185,7 @@ export class UsersService {
         return this.findOne(targetUserId);
     }
 
-    async updateStatus(
-        currentUserId: number,
-        targetUserId: number,
-        input: UpdateUserStatusInput,
-    ) {
+    async updateStatus(currentUserId: number, targetUserId: number, input: UpdateUserStatusInput) {
         const targetUser =
             await this.userRepository.findOneBy({
                 id: targetUserId,
@@ -216,5 +211,104 @@ export class UsersService {
         );
 
         return this.findOne(targetUserId);
+    }
+
+    async uploadAvatar(userId: number, upload: Promise<FileUpload>) {
+        const user = await this.userRepository.findOneBy({ id: userId });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        const { mimetype, createReadStream } = await upload;
+        const allowedMimeTypes = [
+            'image/jpg',
+            'image/jpeg',
+            'image/png',
+            'image/webp',
+        ];
+        if (!allowedMimeTypes.includes(mimetype)) {
+            throw new BadRequestException('Only JPG, JPEG, PNG and WEBP images are allowed');
+        }
+        const extensionByMimeType:
+            Record<string, string> = {
+            'image/jpg': '.jpg',
+            'image/jpeg': '.jpg',
+            'image/png': '.png',
+            'image/webp': '.webp',
+        };
+        const extension = extensionByMimeType[mimetype];
+        const filename = `${randomUUID()}${extension}`;
+        const uploadDirectory = join(process.cwd(), 'uploads', 'avatars');
+        if (!existsSync(uploadDirectory)) {
+            mkdirSync(uploadDirectory, { recursive: true });
+        }
+        const filePath = join(uploadDirectory, filename);
+        try {
+            await pipeline(createReadStream(), createWriteStream(filePath));
+        } catch {
+            this.deleteFileIfExists(filePath);
+            throw new BadRequestException('Unable to save uploaded avatar');
+        }
+        return this.updateAvatar(
+            userId,
+            filename,
+        );
+    }
+    private async updateAvatar(userId: number, filename: string) {
+        const newFilePath = join(process.cwd(), 'uploads', 'avatars', filename);
+        const user = await this.userRepository.findOneBy({ id: userId });
+        if (!user) {
+            this.deleteFileIfExists(newFilePath);
+            throw new NotFoundException('User not found');
+        }
+        const oldAvatarUrl = user.avatar;
+        user.avatar = `/uploads/avatars/${filename}`;
+        try {
+            await this.userRepository.save(user);
+        } catch (error) {
+            //Nếu update database thất bại,
+            //xóa ảnh vừa upload để tránh file rác.
+            this.deleteFileIfExists(newFilePath);
+            throw error;
+        }
+        //Chỉ xóa ảnh cũ sau khi lưu database thành công.
+        if (oldAvatarUrl && oldAvatarUrl.startsWith('/uploads/avatars/')) {
+            const oldFilename = oldAvatarUrl.replace('/uploads/avatars/', '');
+            const oldFilePath = join(process.cwd(), 'uploads', 'avatars', oldFilename,);
+            this.deleteFileIfExists(oldFilePath);
+        }
+        return this.findOne(userId);
+    }
+    private deleteFileIfExists(filePath: string): void {
+        if (existsSync(filePath)) {
+            unlinkSync(filePath);
+        }
+    }
+
+    async changeMyPassword(userId: number, currentPassword: string, newPassword: string, confirmPassword: string) {
+        if (newPassword !== confirmPassword) {
+            throw new BadRequestException('Password confirmation does not match',);
+        }
+        const user = await this.userRepository.findOneBy({ id: userId, });
+        if (!user) {
+            throw new NotFoundException('User not found');
+        }
+        const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
+        if (!isCurrentPasswordValid) {
+            throw new BadRequestException('Current password is incorrect');
+        }
+        const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
+        if (isSamePassword) {
+            throw new BadRequestException('New password must be different from the current password',);
+        }
+        user.password_hash = await bcrypt.hash(newPassword, 10);
+
+        // Nếu trước đó có yêu cầu quên mật khẩu,
+        // token reset cũ cũng phải bị vô hiệu.
+        user.password_reset_token_hash = null;
+        user.password_reset_expires_at = null;
+        await this.userRepository.save(user);
+        return {
+            message: 'Password changed successfully'
+        };
     }
 }

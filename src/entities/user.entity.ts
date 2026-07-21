@@ -58,6 +58,21 @@ export class User {
     })
     email_verification_expires_at?: Date | null;
 
+    @Column({
+        type: 'varchar',
+        length: 64,
+        nullable: true,
+        select: false,
+    })
+    password_reset_token_hash?: string | null;
+
+    @Column({
+        type: 'timestamp',
+        nullable: true,
+        select: false,
+    })
+    password_reset_expires_at?: Date | null;
+
     @CreateDateColumn()
     created_at!: Date;
 

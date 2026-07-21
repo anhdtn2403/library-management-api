@@ -7,6 +7,8 @@ import { RefreshInput } from "./graphql/refresh.input";
 import { MessageType } from "./graphql/message.type";
 import { VerifyEmailInput } from "./graphql/verify-email.input";
 import { ResendVerificationInput } from "./graphql/resend-verification.input";
+import { ForgotPasswordInput } from "./graphql/forgot-password.input";
+import { ResetPasswordInput } from "./graphql/reset-password.input";
 
 @Resolver()
 export class AuthsResolver {
@@ -47,5 +49,21 @@ export class AuthsResolver {
         return this.authsService.refresh(input.refresh_token);
     }
 
+    @Mutation(() => MessageType)
+    forgotPassword(
+        @Args('input') input: ForgotPasswordInput
+    ) {
+        return this.authsService.forgotPassword(input.email);
+    }
 
+    @Mutation(() => MessageType)
+    resetPassword(
+        @Args('input') input: ResetPasswordInput
+    ) {
+        return this.authsService.resetPassword(
+            input.token,
+            input.new_password,
+            input.confirm_password,
+        );
+    }
 }

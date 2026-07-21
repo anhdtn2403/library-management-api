@@ -12,12 +12,10 @@ import { CurrentUser } from "src/common/decorators/current-user.decorator";
 import type { CurrentUserData } from 'src/common/decorators/current-user.decorator';
 import { UpdateUserRoleInput } from "./graphql/update-user-role.input";
 import { UpdateUserStatusInput } from "./graphql/update-user-status.input";
-
 @Resolver(() => UserType)
 export class UsersResolver {
     constructor(
-        private readonly usersService:
-            UsersService,
+        private readonly usersService: UsersService
     ) { }
 
     @Query(() => UsersPageType, { name: 'users' })
