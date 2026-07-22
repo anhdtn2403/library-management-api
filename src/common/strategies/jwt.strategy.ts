@@ -35,10 +35,10 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
             });
 
         if (!user || !user.is_active) {
-            throw new UnauthorizedException('Account is inactive or does not exist');
+            throw new UnauthorizedException('Tài khoản không tồn tại hoặc đã bị vô hiệu hóa');
         }
         if (!user.is_email_verified) {
-            throw new UnauthorizedException('Email has not been verified');
+            throw new UnauthorizedException('Email chưa được xác thực');
         }
         return {
             userId: user.id,

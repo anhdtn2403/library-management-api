@@ -14,7 +14,7 @@ interface GraphqlUploadValue {
 export class UploadScalar
     implements CustomScalar<unknown, unknown> {
     description =
-        'The Upload scalar represents a file upload';
+        'Scalar Upload đại diện cho một tệp được tải lên';
 
     parseValue(value: unknown) {
         if (
@@ -28,19 +28,19 @@ export class UploadScalar
         }
 
         throw new GraphQLError(
-            'Upload value invalid',
+            'Dữ liệu tệp tải lên không hợp lệ',
         );
     }
 
     serialize() {
         throw new GraphQLError(
-            'Upload serialization unsupported',
+            'Không hỗ trợ chuyển đổi dữ liệu tệp tải lên',
         );
     }
 
     parseLiteral(ast: ValueNode) {
         throw new GraphQLError(
-            'Upload literal unsupported',
+            'Không hỗ trợ truyền tệp tải lên theo dạng literal',
             {
                 nodes: ast,
             },

@@ -1,4 +1,4 @@
-import { Injectable, ExecutionContext } from "@nestjs/common";
+import { Injectable, ExecutionContext, UnauthorizedException } from "@nestjs/common";
 import { GqlExecutionContext } from "@nestjs/graphql";
 import { AuthGuard } from "@nestjs/passport";
 
@@ -12,5 +12,29 @@ export class JwtAuthGuard extends AuthGuard('jwt') {
         }
 
         return context.switchToHttp().getRequest();
+    }
+    handleRequest<TUser = any>(err: any, user: TUser, info: any,): TUser {
+        if (err) {
+            throw err;
+        }
+
+        if (!user) {
+            if (info?.name === 'TokenExpiredError') {
+                throw new UnauthorizedException(
+                    'Token đăng nhập đã hết hạn',
+                );
+            }
+
+            if (info?.name === 'JsonWebTokenError') {
+                throw new UnauthorizedException(
+                    'Token đăng nhập không hợp lệ',
+                );
+            }
+
+            throw new UnauthorizedException(
+                'Bạn chưa đăng nhập',
+            );
+        }
+        return user;
     }
 }

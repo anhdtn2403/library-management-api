@@ -118,7 +118,7 @@ export class BooksService {
             },
         });
         if (!book) {
-            throw new NotFoundException('Book not found');
+            throw new NotFoundException('Không tìm thấy sách');
         }
         return book;
     }
@@ -132,7 +132,7 @@ export class BooksService {
             .getOne();
 
         if (existingTitle) {
-            throw new BadRequestException('Book title already exists');
+            throw new BadRequestException('Tên sách đã tồn tại');
         }
         if (dto.isbn) {
             const existingBook = await this.bookRepository.findOne({
@@ -142,7 +142,7 @@ export class BooksService {
             });
 
             if (existingBook) {
-                throw new BadRequestException('ISBN already exists');
+                throw new BadRequestException('ISBN đã tồn tại');
             }
         }
         const subCategory =
@@ -152,13 +152,13 @@ export class BooksService {
 
         if (!subCategory) {
             throw new NotFoundException(
-                'Sub category not found',
+                'Không tìm thấy thể loại con',
             );
         }
         const book = this.bookRepository.create(dto);
         if (book.borrowed_quantity > book.total_quantity) {
             throw new BadRequestException(
-                'Borrowed quantity cannot be greater than total quantity',
+                'Số lượng đang được mượn không thể lớn hơn tổng số lượng sách',
             );
         }
         return this.bookRepository.save(book);
@@ -167,7 +167,7 @@ export class BooksService {
     async update(id: number, dto: UpdateBookInput) {
         const book = await this.bookRepository.findOneBy({ id });
         if (!book) {
-            throw new NotFoundException('Book not found');
+            throw new NotFoundException('Không tìm thấy sách');
         }
         if (dto.title !== undefined) {
             const existingTitle = await this.bookRepository
@@ -179,7 +179,7 @@ export class BooksService {
                 .getOne();
 
             if (existingTitle) {
-                throw new BadRequestException('Book title already exists');
+                throw new BadRequestException('Tên sách đã tồn tại');
             }
         }
         if (dto.isbn) {
@@ -191,7 +191,7 @@ export class BooksService {
             });
 
             if (existingBook) {
-                throw new BadRequestException('ISBN already exists');
+                throw new BadRequestException('ISBN đã tồn tại');
             }
         }
         if (dto.sub_category_id !== undefined) {
@@ -202,14 +202,14 @@ export class BooksService {
 
             if (!subCategory) {
                 throw new NotFoundException(
-                    'Sub category not found',
+                    'Không tìm thấy thể loại con',
                 );
             }
         }
         Object.assign(book, dto);
         if (book.borrowed_quantity > book.total_quantity) {
             throw new BadRequestException(
-                'Borrowed quantity cannot be greater than total quantity',
+                'Số lượng đang được mượn không thể lớn hơn tổng số lượng sách',
             );
         }
         await this.bookRepository.save(book);
@@ -228,7 +228,7 @@ export class BooksService {
             id,
         });
         if (!book) {
-            throw new NotFoundException('Book not found');
+            throw new NotFoundException('Không tìm thấy sách');
         }
 
         const { filename: originalFilename, mimetype, createReadStream } = await upload;
@@ -245,7 +245,7 @@ export class BooksService {
         ];
         if (!allowedMimeTypes.includes(mimetype)) {
             throw new BadRequestException(
-                `Only JPG, JPEG, PNG and WEBP images are allowed. Received: ${mimetype}`,
+                `Chỉ chấp nhận ảnh định dạng JPG, JPEG, PNG hoặc WEBP`,
             );
         }
         const extensionByMimeType: Record<string, string> = {
@@ -271,7 +271,7 @@ export class BooksService {
             this.deleteFileIfExists(filePath);
 
             throw new BadRequestException(
-                'Unable to save uploaded image',
+                'Không thể lưu ảnh đã tải lên',
             );
         }
 
@@ -293,7 +293,7 @@ export class BooksService {
         if (!book) {
             this.deleteFileIfExists(uploadedFilePath);
             throw new NotFoundException(
-                'Book not found',
+                'Không tìm thấy sách',
             );
         }
         const oldImageUrl = book.image_url;

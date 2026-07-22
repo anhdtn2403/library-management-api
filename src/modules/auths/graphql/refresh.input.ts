@@ -5,6 +5,8 @@ import { IsNotEmpty, IsString } from "class-validator";
 export class RefreshInput {
     @Field()
     @IsString()
-    @IsNotEmpty()
+    @IsNotEmpty({
+        message: 'Token không được để trống',
+    })
     refresh_token!: string;
 }

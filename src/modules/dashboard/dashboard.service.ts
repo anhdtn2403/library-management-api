@@ -246,7 +246,7 @@ export class DashboardService {
             toDate = endDate;
         }
         if (fromDate && toDate && fromDate >= toDate) {
-            throw new BadRequestException('from_date must be before or equal to to_date',);
+            throw new BadRequestException('Ngày bắt đầu phải nhỏ hơn hoặc bằng ngày kết thúc',);
         }
         return { fromDate, toDate };
     }

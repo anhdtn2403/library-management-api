@@ -116,7 +116,7 @@ export class UsersService {
 
         if (!user) {
             throw new NotFoundException(
-                'User not found',
+                'Không tìm thấy người dùng',
             );
         }
 
@@ -131,7 +131,7 @@ export class UsersService {
         const user =
             await this.userRepository.findOneBy({ id: userId });
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new NotFoundException('Không tìm thấy người dùng');
         }
         if (input.email !== undefined) {
             const email = input.email.trim().toLowerCase();
@@ -142,7 +142,7 @@ export class UsersService {
                 }
             });
             if (existingEmail) {
-                throw new BadRequestException('Email already exists');
+                throw new BadRequestException('Email đã tồn tại');
             }
             if (user.email.toLowerCase() !== email) {
                 user.email = email;
@@ -166,13 +166,13 @@ export class UsersService {
 
         if (!targetUser) {
             throw new NotFoundException(
-                'User not found',
+                'Không tìm thấy người dùng',
             );
         }
 
         if (currentUserId === targetUserId) {
             throw new BadRequestException(
-                'You cannot change your own role',
+                'Bạn không thể thay đổi vai trò của chính mình',
             );
         }
 
@@ -193,13 +193,13 @@ export class UsersService {
 
         if (!targetUser) {
             throw new NotFoundException(
-                'User not found',
+                'Không tìm thấy người dùng',
             );
         }
 
         if (currentUserId === targetUserId) {
             throw new BadRequestException(
-                'You cannot deactivate your own account',
+                'Bạn không thể vô hiệu hóa tài khoản của chính mình',
             );
         }
 
@@ -216,7 +216,7 @@ export class UsersService {
     async uploadAvatar(userId: number, upload: Promise<FileUpload>) {
         const user = await this.userRepository.findOneBy({ id: userId });
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new NotFoundException('Không tìm thấy người dùng');
         }
         const { mimetype, createReadStream } = await upload;
         const allowedMimeTypes = [
@@ -226,7 +226,7 @@ export class UsersService {
             'image/webp',
         ];
         if (!allowedMimeTypes.includes(mimetype)) {
-            throw new BadRequestException('Only JPG, JPEG, PNG and WEBP images are allowed');
+            throw new BadRequestException('Chỉ chấp nhận ảnh định dạng JPG, JPEG, PNG hoặc WEBP');
         }
         const extensionByMimeType:
             Record<string, string> = {
@@ -246,7 +246,7 @@ export class UsersService {
             await pipeline(createReadStream(), createWriteStream(filePath));
         } catch {
             this.deleteFileIfExists(filePath);
-            throw new BadRequestException('Unable to save uploaded avatar');
+            throw new BadRequestException('Không thể lưu ảnh đại diện đã tải lên');
         }
         return this.updateAvatar(
             userId,
@@ -258,7 +258,7 @@ export class UsersService {
         const user = await this.userRepository.findOneBy({ id: userId });
         if (!user) {
             this.deleteFileIfExists(newFilePath);
-            throw new NotFoundException('User not found');
+            throw new NotFoundException('Không tìm thấy người dùng');
         }
         const oldAvatarUrl = user.avatar;
         user.avatar = `/uploads/avatars/${filename}`;
@@ -286,19 +286,19 @@ export class UsersService {
 
     async changeMyPassword(userId: number, currentPassword: string, newPassword: string, confirmPassword: string) {
         if (newPassword !== confirmPassword) {
-            throw new BadRequestException('Password confirmation does not match',);
+            throw new BadRequestException('Mật khẩu xác nhận không khớp',);
         }
         const user = await this.userRepository.findOneBy({ id: userId, });
         if (!user) {
-            throw new NotFoundException('User not found');
+            throw new NotFoundException('Không tìm thấy người dùng');
         }
         const isCurrentPasswordValid = await bcrypt.compare(currentPassword, user.password_hash);
         if (!isCurrentPasswordValid) {
-            throw new BadRequestException('Current password is incorrect');
+            throw new BadRequestException('Mật khẩu hiện tại không đúng');
         }
         const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
         if (isSamePassword) {
-            throw new BadRequestException('New password must be different from the current password',);
+            throw new BadRequestException('Mật khẩu mới phải khác mật khẩu hiện tại',);
         }
         user.password_hash = await bcrypt.hash(newPassword, 10);
 
@@ -308,7 +308,7 @@ export class UsersService {
         user.password_reset_expires_at = null;
         await this.userRepository.save(user);
         return {
-            message: 'Password changed successfully'
+            message: 'Đổi mật khẩu thành công'
         };
     }
 }

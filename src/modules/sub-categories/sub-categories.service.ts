@@ -39,7 +39,7 @@ export class SubCategoriesService {
             },
         });
         if (!subCategory) {
-            throw new NotFoundException('Sub category not found');
+            throw new NotFoundException('Không tìm thấy thể loại con');
         }
         return subCategory;
     }
@@ -49,7 +49,7 @@ export class SubCategoriesService {
             where: { id: dto.category_id },
         });
         if (!category) {
-            throw new NotFoundException('Category not found');
+            throw new NotFoundException('Không tìm thấy thể loại');
         }
         const existed = await this.subCategoryRepository.findOne({
             where: {
@@ -59,7 +59,7 @@ export class SubCategoriesService {
         });
         if (existed) {
             throw new BadRequestException(
-                'Sub category name already exists in this category',
+                'Tên thể loại con đã tồn tại trong thể loại này',
             );
         }
         const subCategory = this.subCategoryRepository.create({
@@ -76,7 +76,7 @@ export class SubCategoriesService {
 
         if (!subCategory) {
             throw new NotFoundException(
-                'Sub category not found',
+                'Không tìm thấy thể loại con',
             );
         }
 
@@ -96,7 +96,7 @@ export class SubCategoriesService {
 
             if (!category) {
                 throw new NotFoundException(
-                    'Category not found',
+                    'Không tìm thấy thể loại',
                 );
             }
         }
@@ -115,7 +115,7 @@ export class SubCategoriesService {
 
             if (existed && existed.id !== id) {
                 throw new BadRequestException(
-                    'Sub category name already exists in this category',
+                    'Tên thể loại con đã tồn tại trong thể loại này',
                 );
             }
         }
@@ -137,12 +137,12 @@ export class SubCategoriesService {
         });
         if (totalBooks > 0) {
             throw new BadRequestException(
-                'Cannot delete sub category that has books',
+                'Không thể xóa thể loại con đang có sách',
             );
         }
         await this.subCategoryRepository.remove(subCategory);
         return {
-            message: 'Sub category deleted successfully',
+            message: 'Xóa thể loại con thành công',
         };
     }
 }

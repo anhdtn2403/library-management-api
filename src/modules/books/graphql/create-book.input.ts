@@ -9,7 +9,9 @@ export class CreateBookInput {
 
     @Field()
     @IsString()
-    @IsNotEmpty()
+    @IsNotEmpty({
+        message: 'Tên sách không được để trống',
+    })
     title!: string;
 
     @Field({ nullable: true })

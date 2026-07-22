@@ -104,7 +104,7 @@ export class LoansService {
         }
         const loan = await qb.getOne();
         if (!loan) {
-            throw new NotFoundException('Loan not found');
+            throw new NotFoundException('Không tìm thấy phiếu mượn');
         }
         return this.mapLoanResponse(loan);
     }
@@ -118,7 +118,7 @@ export class LoansService {
                 },
             });
             if (!user) {
-                throw new NotFoundException('User not found');
+                throw new NotFoundException('Không tìm thấy người dùng');
             }
 
             const loan = manager.create(Loan, {
@@ -147,14 +147,14 @@ export class LoansService {
                 });
                 if (!book) {
                     throw new NotFoundException(
-                        `Book with id ${bookId} not found`,
+                        `Không tìm thấy sách có ID ${bookId} hoặc sách đã ngừng hoạt động`,
                     );
                 }
                 const availableQuantity =
                     book.total_quantity - book.borrowed_quantity;
                 if (requestedQuantity > availableQuantity) {
                     throw new BadRequestException(
-                        `Book "${book.title}" only has ${availableQuantity} copies available, but ${requestedQuantity} copies were requested`,
+                        `Sách "${book.title}" chỉ còn ${availableQuantity} quyển, không đủ cho số lượng yêu cầu là ${requestedQuantity}`,
                     );
                 }
                 booksById.set(bookId, book);
@@ -164,7 +164,7 @@ export class LoansService {
                 const book = booksById.get(item.book_id)!;
                 if (item.borrow_days > book.max_borrow_days) {
                     throw new BadRequestException(
-                        `Book "${book.title}" can only be borrowed for max ${book.max_borrow_days} days`,
+                        `Sách "${book.title}" chỉ được mượn tối đa ${book.max_borrow_days} ngày`,
                     );
                 }
                 const depositAmount = Number(book.deposit_amount) * item.quantity;
@@ -213,9 +213,9 @@ export class LoansService {
                     loan_details: true,
                 },
             });
-            if (!loan) throw new NotFoundException('Loan not found');
+            if (!loan) throw new NotFoundException('Không tìm thấy phiếu mượn');
             if (loan.status !== LoanStatus.PENDING) {
-                throw new BadRequestException('Only PENDING loan can be confirmed');
+                throw new BadRequestException('Chỉ có thể xác nhận phiếu mượn đang chờ xử lý');
             }
 
             const loanDate: Date = new Date();
@@ -240,11 +240,11 @@ export class LoansService {
                 },
             });
             if (!loan) {
-                throw new NotFoundException('Loan not found');
+                throw new NotFoundException('Không tìm thấy phiếu mượn');
             }
             if (loan.status !== LoanStatus.PENDING_PAYMENT) {
                 throw new BadRequestException(
-                    'Only PENDING_PAYMENT loan can be paid',
+                    'Chỉ có thể thanh toán và bàn giao sách cho phiếu mượn đang chờ thanh toán',
                 );
             }
 
@@ -271,16 +271,14 @@ export class LoansService {
                 });
                 if (!book) {
                     throw new NotFoundException(
-                        `Book with id ${bookId} not found or inactive`,
+                        `Không tìm thấy sách có ID ${bookId} hoặc sách đã ngừng hoạt động`,
                     );
                 }
                 const availableQuantity =
                     book.total_quantity - book.borrowed_quantity;
                 if (requestedQuantity > availableQuantity) {
                     throw new BadRequestException(
-                        `Book "${book.title}" only has ` +
-                        `${availableQuantity} copies available, ` +
-                        `but ${requestedQuantity} copies were requested`,
+                        `Sách "${book.title}" chỉ còn ${availableQuantity} quyển, không đủ cho số lượng yêu cầu là ${requestedQuantity}`
                     );
                 }
                 book.borrowed_quantity += requestedQuantity;
@@ -312,19 +310,17 @@ export class LoansService {
                 .getOne();
 
             if (!detail) {
-                throw new NotFoundException('Loan detail not found');
+                throw new NotFoundException('Không tìm thấy chi tiết phiếu mượn');
             }
             const book = await manager.findOne(Book, {
                 where: { id: detail.book_id },
             });
             if (!book) {
-                throw new NotFoundException('Book not found');
+                throw new NotFoundException('Không tìm thấy sách');
             }
-
-            if (!detail) throw new NotFoundException('Loan detail not found');
             if (![LoanDetailStatus.BORROWING, LoanDetailStatus.OVERDUE].includes(detail.status)) {
                 throw new BadRequestException(
-                    'Only BORROWING or OVERDUE detail can be returned',
+                    'Chỉ có thể trả sách đang được mượn hoặc đã quá hạn',
                 );
             }
 
@@ -333,7 +329,7 @@ export class LoansService {
             const processedQuantity = returnQuantity + lostQuantity;
             if (processedQuantity <= 0) {
                 throw new BadRequestException(
-                    'Return quantity or lost quantity must be greater than 0',
+                    'Số lượng trả hoặc số lượng mất phải lớn hơn 0',
                 );
             }
 
@@ -343,17 +339,17 @@ export class LoansService {
                 - currentReturnedQuantity - currentLostQuantity;
             if (processedQuantity > remainingQuantity) {
                 throw new BadRequestException(
-                    `Only ${remainingQuantity} book(s) remain unprocessed`,
+                    `Tổng số lượng trả và mất vượt quá số lượng còn lại. Chỉ còn ${remainingQuantity} quyển sách chưa được xử lý`,
                 );
             }
             if (detail.quantity <= 0) {
                 throw new BadRequestException(
-                    'Loan detail quantity is invalid',
+                    'Số lượng trong chi tiết phiếu mượn không hợp lệ',
                 );
             }
             if (!detail.due_date) {
                 throw new BadRequestException(
-                    'Loan detail does not have due date',
+                    'Chi tiết phiếu mượn chưa có hạn trả sách',
                 );
             }
             const now = new Date();
@@ -431,11 +427,11 @@ export class LoansService {
             }
             const loan = await qb.getOne();
             if (!loan) {
-                throw new NotFoundException('Loan not found');
+                throw new NotFoundException('Không tìm thấy phiếu mượn');
             }
             if (![LoanStatus.PENDING, LoanStatus.PENDING_PAYMENT].includes(loan.status)) {
                 throw new BadRequestException(
-                    'Only PENDING or PENDING_PAYMENT loan can be cancelled',
+                    'Chỉ có thể hủy phiếu mượn đang chờ xử lý hoặc chờ thanh toán',
                 );
             }
             loan.status = LoanStatus.CANCELLED;
@@ -477,7 +473,7 @@ export class LoansService {
             }
             return {
                 total: overdueDetails.length,
-                message: 'Overdue loan details checked successfully',
+                message: `Đã cập nhật ${overdueDetails.length} chi tiết mượn sách quá hạn`
             };
         });
     }

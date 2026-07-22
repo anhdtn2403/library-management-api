@@ -35,9 +35,9 @@ export class AuthsService {
             .getOne();
         if (existedUser) {
             if (existedUser.email.toLowerCase() === email) {
-                throw new BadRequestException('Email already exists');
+                throw new BadRequestException('Email đã tồn tại');
             }
-            throw new BadRequestException('Username already exists');
+            throw new BadRequestException('Tên đăng nhập đã tồn tại');
         }
         const hashedPassword = await bcrypt.hash(dto.password, 10);
 
@@ -65,7 +65,7 @@ export class AuthsService {
     async verifyEmail(rawToken: string) {
         const token = rawToken.trim();
         if (!token) {
-            throw new BadRequestException('Verification token is required');
+            throw new BadRequestException('Token xác thực email là bắt buộc');
         }
         const tokenHash = this.hashToken(token);
         const user = await this.userRepository
@@ -84,24 +84,24 @@ export class AuthsService {
             )
             .getOne();
         if (!user) {
-            throw new BadRequestException('Invalid verification token',);
+            throw new BadRequestException('Token xác thực email không hợp lệ',);
         }
         if (user.is_email_verified) {
             return {
-                message: 'Email has already been verified',
+                message: 'Email đã được xác thực trước đó',
             };
         }
         if (!user.email_verification_expires_at ||
             user.email_verification_expires_at.getTime() < Date.now()
         ) {
-            throw new BadRequestException('Verification token has expired');
+            throw new BadRequestException('Token xác thực email đã hết hạn');
         }
         user.is_email_verified = true;
         user.email_verification_token_hash = null;
         user.email_verification_expires_at = null;
         await this.userRepository.save(user);
         return {
-            message: 'Email verified successfully'
+            message: 'Xác thực email thành công'
         };
     }
 
@@ -128,17 +128,17 @@ export class AuthsService {
         // tránh việc người ngoài dò danh sách tài khoản.
         if (!user) {
             return {
-                message: 'If the email exists, a verification email has been sent'
+                message: 'Nếu email tồn tại trong hệ thống, email xác thực đã được gửi'
             };
         }
         if (user.is_email_verified) {
             return {
-                message: 'If the email exists, a verification email has been sent'
+                message: 'Nếu email tồn tại trong hệ thống, email xác thực đã được gửi'
             };
         }
         if (!user.is_active) {
             return {
-                message: 'If the email exists, a verification email has been sent'
+                message: 'Nếu email tồn tại trong hệ thống, email xác thực đã được gửi'
             };
         }
         const { rawToken, tokenHash, expiresAt } = this.createEmailVerificationToken();
@@ -147,7 +147,7 @@ export class AuthsService {
         await this.userRepository.save(user);
         await this.mailService.sendVerificationEmail(user.email, user.full_name, rawToken);
         return {
-            message: 'If the email exists, a verification email has been sent'
+            message: 'Nếu email tồn tại trong hệ thống, email xác thực đã được gửi'
         };
     }
 
@@ -156,17 +156,17 @@ export class AuthsService {
             username: dto.username
         });
         if (!user) {
-            throw new UnauthorizedException('Invalid username or password');
+            throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không đúng');
         }
         const isPasswordValid = await bcrypt.compare(dto.password, user.password_hash);
         if (!isPasswordValid) {
-            throw new UnauthorizedException('Invalid username or password');
+            throw new UnauthorizedException('Tên đăng nhập hoặc mật khẩu không đúng');
         }
         if (!user.is_active) {
-            throw new UnauthorizedException('Your account has been deactivated');
+            throw new UnauthorizedException('Tài khoản của bạn đã bị vô hiệu hóa');
         }
         if (!user.is_email_verified) {
-            throw new UnauthorizedException('Please verify your email before logging in');
+            throw new UnauthorizedException('Vui lòng xác thực email trước khi đăng nhập');
         }
 
         const payload = {
@@ -196,17 +196,17 @@ export class AuthsService {
             );
         } catch {
             throw new UnauthorizedException(
-                'Invalid refresh token',
+                'Refresh token không hợp lệ hoặc đã hết hạn',
             );
         }
         const user = await this.userRepository.findOneBy({ id: payload.sub });
         if (!user || !user.is_active) {
             throw new UnauthorizedException(
-                'Account is inactive or does not exist',
+                'Tài khoản không tồn tại hoặc đã bị vô hiệu hóa',
             );
         }
         if (!user.is_email_verified) {
-            throw new UnauthorizedException('Email has not been verified');
+            throw new UnauthorizedException('Email chưa được xác thực');
         }
         const newPayload = {
             sub: user.id,
@@ -238,7 +238,7 @@ export class AuthsService {
                 .getOne();
         // Luôn trả cùng một message,
         // không tiết lộ email có tồn tại hay không.
-        const response = { message: 'If the email exists, a password reset email has been sent' };
+        const response = { message: 'Nếu email tồn tại trong hệ thống, hướng dẫn đặt lại mật khẩu đã được gửi' };
         if (!user) {
             return response;
         }
@@ -257,11 +257,11 @@ export class AuthsService {
     }
     async resetPassword(rawToken: string, newPassword: string, confirmPassword: string) {
         if (newPassword !== confirmPassword) {
-            throw new BadRequestException('Password confirmation does not match');
+            throw new BadRequestException('Mật khẩu xác nhận không khớp');
         }
         const token = rawToken.trim();
         if (!token) {
-            throw new BadRequestException('Reset token is required',);
+            throw new BadRequestException('Token đặt lại mật khẩu là bắt buộc',);
         }
         const tokenHash = this.hashToken(token);
         const user = await this.userRepository
@@ -280,18 +280,18 @@ export class AuthsService {
             )
             .getOne();
         if (!user) {
-            throw new BadRequestException('Invalid password reset token');
+            throw new BadRequestException('Token đặt lại mật khẩu không hợp lệ');
         }
         if (
             !user.password_reset_expires_at || user.password_reset_expires_at.getTime() < Date.now()) {
-            throw new BadRequestException('Password reset token has expired');
+            throw new BadRequestException('Token đặt lại mật khẩu đã hết hạn');
         }
         if (!user.is_active) {
-            throw new UnauthorizedException('Your account has been deactivated');
+            throw new UnauthorizedException('Tài khoản của bạn đã bị vô hiệu hóa');
         }
         const isSamePassword = await bcrypt.compare(newPassword, user.password_hash);
         if (isSamePassword) {
-            throw new BadRequestException('New password must be different from the current password');
+            throw new BadRequestException('Mật khẩu mới phải khác mật khẩu hiện tại');
         }
         user.password_hash = await bcrypt.hash(newPassword, 10);
 
@@ -299,7 +299,7 @@ export class AuthsService {
         user.password_reset_token_hash = null;
         user.password_reset_expires_at = null;
         await this.userRepository.save(user);
-        return { message: 'Password reset successfully' };
+        return { message: 'Đặt lại mật khẩu thành công' };
     }
 
     private createEmailVerificationToken(): {

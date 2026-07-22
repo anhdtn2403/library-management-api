@@ -113,13 +113,13 @@ export class UserFavoriteBooksService {
 
         if (!book) {
             throw new NotFoundException(
-                'Book not found',
+                'Không tìm thấy sách',
             );
         }
 
         if (!book.is_active) {
             throw new BadRequestException(
-                'Inactive book cannot be added to favorites',
+                'Không thể thêm sách đã ngừng hoạt động vào danh sách yêu thích',
             );
         }
 

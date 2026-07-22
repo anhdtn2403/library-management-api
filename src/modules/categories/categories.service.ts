@@ -32,7 +32,7 @@ export class CategoriesService {
         });
 
         if (!category) {
-            throw new NotFoundException('Category not found');
+            throw new NotFoundException('Không tìm thấy thể loại');
         }
 
         return category;
@@ -44,7 +44,7 @@ export class CategoriesService {
         });
 
         if (existed) {
-            throw new BadRequestException('Category name already exists');
+            throw new BadRequestException('Tên thể loại đã tồn tại');
         }
 
         const category = this.categoryRepository.create({
@@ -63,7 +63,7 @@ export class CategoriesService {
             });
 
             if (existed && existed.id !== id) {
-                throw new BadRequestException('Category name already exists');
+                throw new BadRequestException('Tên thể loại đã tồn tại');
             }
 
             category.name = dto.name.trim();
@@ -77,7 +77,7 @@ export class CategoriesService {
 
         if (category.sub_categories?.length > 0) {
             throw new BadRequestException(
-                'Cannot delete category that has sub categories',
+                'Không thể xóa thể loại đang chứa thể loại con',
             );
         }
 

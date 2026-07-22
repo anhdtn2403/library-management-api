@@ -20,7 +20,7 @@ export class LmsNotificationsService {
         const notification = repository.create({
             user_id: userId,
             title: 'Phiếu mượn quá hạn',
-            message: `Phiếu mượn #${loanId} của bạn đã quá hạn trả sách.`,
+            message: `Phiếu mượn #${loanId} của bạn đã quá hạn trả sách. Vui lòng trả sách sớm để tránh phát sinh thêm tiền phạt.`,
             type: NotificationType.LOAN_OVERDUE,
             is_read: false,
         });
@@ -42,7 +42,7 @@ export class LmsNotificationsService {
         if (ids.length === 0) {
             return {
                 message:
-                    'No notifications were selected',
+                    'Không có thông báo nào được chọn',
                 ids: [],
             };
         }
@@ -62,7 +62,7 @@ export class LmsNotificationsService {
 
 
         return {
-            message: 'Notifications marked as read',
+            message: 'Đã đánh dấu tất cả thông báo là đã đọc',
             ids,
         };
     }

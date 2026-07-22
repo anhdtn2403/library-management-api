@@ -27,14 +27,16 @@ export class MailService {
             await this.transporter.sendMail({
                 from: this.configService.getOrThrow<string>('MAIL_FROM',),
                 to: email,
-                subject: 'Verify your Library Management account',
+                subject: 'Xác thực tài khoản LMS của bạn',
                 text: [
-                    `Hello ${fullName},`,
+                    `Xin chào ${fullName},`,
                     '',
-                    'Please verify your email by opening the link below:',
+                    'Cảm ơn bạn đã đăng ký tài khoản.',
+                    'Vui lòng xác thực email bằng cách mở liên kết bên dưới:',
                     verificationUrl,
                     '',
-                    'This link will expire soon.',
+                    `Liên kết xác thực sẽ hết hạn sau ${this.configService.get<string>('EMAIL_VERIFICATION_EXPIRES_MINUTES')} phút.`,
+                    'Nếu bạn không thực hiện đăng ký này, bạn có thể bỏ qua email.',
                 ].join('\n'),
                 html: `
                     <div style="
@@ -44,19 +46,11 @@ export class MailService {
                         font-family: Arial, sans-serif;
                         color: #222;
                     ">
-                        <h2>
-                            Verify your email
-                        </h2>
+                        <h2>Xác thực tài khoản</h2>
+                        <p>Xin chào <strong>${fullName}</strong>,</p>
                         <p>
-                            Hello ${this.escapeHtml(fullName)},
-                        </p>
-                        <p>
-                            Thank you for registering
-                            your Library Management account.
-                        </p>
-                        <p>
-                            Click the button below to
-                            verify your email address.
+                        Cảm ơn bạn đã đăng ký tài khoản tại hệ thống quản lý thư viện.
+                        Vui lòng nhấn nút bên dưới để xác thực địa chỉ email.
                         </p>
                         <a
                             href="${verificationUrl}"
@@ -69,28 +63,20 @@ export class MailService {
                                 border-radius: 6px;
                             "
                         >
-                            Verify email
+                            Xác thực email
                         </a>
-                        <p style="
-                            margin-top: 24px;
-                            color: #666;
-                        ">
-                            If the button does not work,
-                            copy this URL into your browser:
-                        </p>
-                        <p style="word-break: break-all;">
-                            ${verificationUrl}
+                        <p>
+                        Liên kết xác thực sẽ hết hạn sau ${this.configService.get<string>('EMAIL_VERIFICATION_EXPIRES_MINUTES')} phút.
                         </p>
                         <p style="color: #666;">
-                            If you did not create this account,
-                            you can ignore this email.
+                            Nếu bạn không thực hiện đăng ký này, bạn có thể bỏ qua email.
                         </p>
                     </div>`,
             });
         } catch (error) {
-            this.logger.error(`Cannot send verification email to ${email}`,
+            this.logger.error(`Không thể gửi email xác thực đến ${email}`,
                 error instanceof Error ? error.stack : undefined);
-            throw new InternalServerErrorException('Unable to send verification email');
+            throw new InternalServerErrorException('Không thể gửi email xác thực');
         }
     }
 
@@ -120,16 +106,16 @@ export class MailService {
             await this.transporter.sendMail({
                 from: this.configService.getOrThrow<string>('MAIL_FROM'),
                 to: email,
-                subject: 'Reset your Library Management password',
+                subject: 'Đặt lại mật khẩu tài khoản LMS',
                 text: [
-                    `Hello ${fullName},`,
+                    `Xin chào ${fullName},`,
                     '',
-                    'Open the link below to reset your password:',
+                    'Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu cho tài khoản của bạn.',
+                    'Vui lòng mở liên kết bên dưới để đặt lại mật khẩu:',
                     resetUrl,
                     '',
-                    'This link will expire soon.',
-                    '',
-                    'If you did not request this, ignore this email.',
+                    `Liên kết này sẽ hết hạn sau ${this.configService.get<string>('PASSWORD_RESET_EXPIRES_MINUTES')} phút.`,
+                    'Nếu bạn không yêu cầu đặt lại mật khẩu, bạn có thể bỏ qua email.',
                 ].join('\n'),
                 html: `
                 <div style="
@@ -139,13 +125,11 @@ export class MailService {
                     font-family: Arial, sans-serif;
                     color: #222;
                 ">
-                    <h2>Reset your password</h2>
+                    <h2>Đặt lại mật khẩu</h2>
+                    <p>Xin chào <strong>${fullName}</strong>,</p>
                     <p>
-                        Hello ${this.escapeHtml(fullName)},
-                    </p>
-                    <p>
-                        We received a request to reset
-                        your Library Management password.
+                    Chúng tôi đã nhận được yêu cầu đặt lại mật khẩu
+                    cho tài khoản của bạn.
                     </p>
                     <a
                         href="${resetUrl}"
@@ -158,30 +142,23 @@ export class MailService {
                             border-radius: 6px;
                         "
                     >
-                        Reset password
+                        Đặt lại mật khẩu
                     </a>
-                    <p style="
-                        margin-top: 24px;
-                        color: #666;
-                    ">
-                        If the button does not work,
-                        copy this URL into your browser:
+                    <p>
+                    Liên kết này sẽ hết hạn sau ${this.configService.get<string>('PASSWORD_RESET_EXPIRES_MINUTES')} phút.
                     </p>
-                    <p style="word-break: break-all;">
-                        ${resetUrl}
-                    </p>
-                    <p style="color: #666;">
-                        If you did not request a password
-                        reset, you can ignore this email.
+                    <p>
+                    Nếu bạn không yêu cầu đặt lại mật khẩu,
+                    bạn có thể bỏ qua email này.
                     </p>
                 </div>`,
             });
         } catch (error) {
             this.logger.error(
-                `Cannot send password reset email to ${email}`,
+                `Không thể gửi email đặt lại mật khẩu tới ${email}`,
                 error instanceof Error ? error.stack : undefined,
             );
-            throw new InternalServerErrorException('Unable to send password reset email');
+            throw new InternalServerErrorException('Không thể gửi email đặt lại mật khẩu');
         }
     }
 }

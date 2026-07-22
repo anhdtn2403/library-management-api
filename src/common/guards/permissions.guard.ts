@@ -42,7 +42,7 @@ export class PermissionsGuard implements CanActivate {
         const user = request.user;
 
         if (!user || !user.role) {
-            throw new ForbiddenException('User role not found');
+            throw new ForbiddenException('Không tìm thấy vai trò của người dùng');
         }
 
         const rolePermissions = await this.rolePermissionRepository.find({
@@ -53,7 +53,7 @@ export class PermissionsGuard implements CanActivate {
         });
 
         if (rolePermissions.length === 0) {
-            throw new ForbiddenException('You do not have permission');
+            throw new ForbiddenException('Bạn không có quyền thực hiện thao tác này');
         }
 
         return true;
