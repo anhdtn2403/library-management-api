@@ -207,40 +207,70 @@ export class LoansService {
 
     async confirmLoan(id: number) {
         return this.dataSource.transaction(async manager => {
+            // Khóa dòng loan trong suốt transaction.
+            // Nếu cancelLoan() hoặc payAndBorrow() đang giữ khóa
+            // trên cùng loan này, request hiện tại sẽ phải chờ.
             const loan = await manager.findOne(Loan, {
                 where: { id },
-                relations: {
-                    loan_details: true,
+                lock: {
+                    mode: 'pessimistic_write',
                 },
             });
-            if (!loan) throw new NotFoundException('Không tìm thấy phiếu mượn');
-            if (loan.status !== LoanStatus.PENDING) {
-                throw new BadRequestException('Chỉ có thể xác nhận phiếu mượn đang chờ xử lý');
+            if (!loan) {
+                throw new NotFoundException(
+                    'Không tìm thấy phiếu mượn',
+                );
             }
-
-            const loanDate: Date = new Date();
-            loan.status = LoanStatus.PENDING_PAYMENT;
-            loan.loan_date = loanDate;
-            for (const detail of loan.loan_details) {
-                const dueDate: Date = new Date(loanDate);
+            // Phải kiểm tra trạng thái sau khi đã khóa.
+            // Khi request này được tiếp tục sau thời gian chờ,
+            // loan.status sẽ là trạng thái mới nhất.
+            if (loan.status !== LoanStatus.PENDING) {
+                throw new BadRequestException(
+                    'Chỉ có thể xác nhận phiếu mượn đang chờ xử lý',
+                );
+            }
+            // Không lấy relation loan_details trong câu truy vấn khóa.
+            // Sau khi khóa dòng loans, truy vấn loan_details riêng trong cùng transaction.
+            const loanDetails = await manager.find(LoanDetail, {
+                where: {
+                    loan_id: loan.id,
+                },
+            });
+            if (loanDetails.length === 0) {
+                throw new BadRequestException(
+                    'Phiếu mượn không có sách để xác nhận',
+                );
+            }
+            const loanDate = new Date();
+            for (const detail of loanDetails) {
+                const dueDate = new Date(loanDate);
                 dueDate.setDate(dueDate.getDate() + detail.borrow_days);
                 detail.due_date = dueDate;
-                await manager.save(LoanDetail, detail);
             }
+            // Có thể lưu cả mảng một lần.
+            // Không cần await manager.save() trong từng vòng lặp.
+            await manager.save(LoanDetail, loanDetails);
+            loan.status = LoanStatus.PENDING_PAYMENT;
+            loan.loan_date = loanDate;
             await manager.save(Loan, loan);
         });
     }
 
     async payAndBorrow(id: number) {
         return this.dataSource.transaction(async manager => {
+            // Phải khóa Loan trước.
+            // Khi đó Cancel và Pay không thể cùng xử lý
+            // trên trạng thái PENDING_PAYMENT cũ.
             const loan = await manager.findOne(Loan, {
                 where: { id },
-                relations: {
-                    loan_details: true,
+                lock: {
+                    mode: 'pessimistic_write',
                 },
             });
             if (!loan) {
-                throw new NotFoundException('Không tìm thấy phiếu mượn');
+                throw new NotFoundException(
+                    'Không tìm thấy phiếu mượn',
+                );
             }
             if (loan.status !== LoanStatus.PENDING_PAYMENT) {
                 throw new BadRequestException(
@@ -248,18 +278,32 @@ export class LoansService {
                 );
             }
 
+            const loanDetails = await manager.find(LoanDetail, {
+                where: {
+                    loan_id: loan.id,
+                },
+            });
+            if (loanDetails.length === 0) {
+                throw new BadRequestException(
+                    'Phiếu mượn không có sách để bàn giao',
+                );
+            }
             const quantityByBook = new Map<number, number>();
-            for (const detail of loan.loan_details) {
+            for (const detail of loanDetails) {
                 quantityByBook.set(
                     detail.book_id,
-                    (quantityByBook.get(detail.book_id) ?? 0)
-                    + detail.quantity,
+                    (quantityByBook.get(detail.book_id) ?? 0) + detail.quantity
                 );
             }
 
             // Khóa từng dòng book trong transaction để tránh
             // hai request thanh toán cùng lúc cùng lấy một lượng tồn kho.
-            for (const [bookId, requestedQuantity] of quantityByBook) {
+            // khóa Book theo thứ tự ID cố định => giảm nguy cơ deadlock
+            const sortedBookQuantities =
+                [...quantityByBook.entries()].sort(([bookIdA], [bookIdB]) => {
+                    return bookIdA - bookIdB;
+                });
+            for (const [bookId, requestedQuantity] of sortedBookQuantities) {
                 const book = await manager.findOne(Book, {
                     where: {
                         id: bookId,
@@ -274,8 +318,7 @@ export class LoansService {
                         `Không tìm thấy sách có ID ${bookId} hoặc sách đã ngừng hoạt động`,
                     );
                 }
-                const availableQuantity =
-                    book.total_quantity - book.borrowed_quantity;
+                const availableQuantity = book.total_quantity - book.borrowed_quantity;
                 if (requestedQuantity > availableQuantity) {
                     throw new BadRequestException(
                         `Sách "${book.title}" chỉ còn ${availableQuantity} quyển, không đủ cho số lượng yêu cầu là ${requestedQuantity}`
@@ -287,16 +330,15 @@ export class LoansService {
 
             let totalDeposit = 0;
             let totalRentalFee = 0;
-            for (const detail of loan.loan_details) {
+            for (const detail of loanDetails) {
                 detail.status = LoanDetailStatus.BORROWING;
                 totalDeposit += Number(detail.deposit_amount);
                 totalRentalFee += Number(detail.rental_fee);
             }
-            await manager.save(LoanDetail, loan.loan_details);
+            await manager.save(LoanDetail, loanDetails);
 
             loan.status = LoanStatus.BORROWING;
-            loan.total_initial_payment =
-                totalDeposit + totalRentalFee;
+            loan.total_initial_payment = totalDeposit + totalRentalFee;
             await manager.save(Loan, loan);
         });
     }
@@ -410,36 +452,50 @@ export class LoansService {
         });
     }
 
-    async cancelLoan(id: number, input: CancelLoanInput, currentUser: CurrentUserData) {
+    async cancelLoan(id: number, input: CancelLoanInput, currentUser: CurrentUserData,) {
         return this.dataSource.transaction(async manager => {
-            const qb = manager.getRepository(Loan)
-                .createQueryBuilder('loan')
-                .leftJoinAndSelect('loan.loan_details', 'detail')
-                .where('loan.id = :id', { id });
-
-            if (currentUser.role === UserRole.MEMBER) {
-                qb.andWhere(
-                    'loan.user_id = :userId',
-                    {
-                        userId: currentUser.userId,
-                    },
-                );
-            }
-            const loan = await qb.getOne();
+            // Khóa đúng dòng loan.
+            // confirmLoan(), cancelLoan() và payAndBorrow()
+            // đều phải khóa cùng một dòng theo cùng cách.
+            const loan = await manager.findOne(Loan, {
+                where: { id },
+                lock: {
+                    mode: 'pessimistic_write',
+                },
+            });
             if (!loan) {
                 throw new NotFoundException('Không tìm thấy phiếu mượn');
             }
-            if (![LoanStatus.PENDING, LoanStatus.PENDING_PAYMENT].includes(loan.status)) {
-                throw new BadRequestException(
-                    'Chỉ có thể hủy phiếu mượn đang chờ xử lý hoặc chờ thanh toán',
-                );
+
+            // Member chỉ được hủy phiếu của chính mình
+            // Librarian/Admin không bị giới hạn user_id
+            if (currentUser.role === UserRole.MEMBER && loan.user_id !== currentUser.userId) {
+                throw new NotFoundException('Không tìm thấy phiếu mượn');
             }
-            loan.status = LoanStatus.CANCELLED;
-            loan.cancelled_reason = input.cancelled_reason.trim();
-            for (const detail of loan.loan_details) {
+
+            // Cả Member và Thủ thư đều được hủy
+            // ở PENDING và PENDING_PAYMENT.
+            const cancellableStatuses: LoanStatus[] = [
+                LoanStatus.PENDING,
+                LoanStatus.PENDING_PAYMENT,
+            ];
+            if (!cancellableStatuses.includes(loan.status)) {
+                throw new BadRequestException('Chỉ có thể hủy phiếu mượn đang chờ xử lý hoặc chờ thanh toán');
+            }
+
+            const loanDetails = await manager.find(LoanDetail, {
+                where: {
+                    loan_id: loan.id,
+                },
+            });
+            for (const detail of loanDetails) {
                 detail.status = LoanDetailStatus.CANCELLED;
             }
-            await manager.save(LoanDetail, loan.loan_details);
+            if (loanDetails.length > 0) {
+                await manager.save(LoanDetail, loanDetails);
+            }
+            loan.status = LoanStatus.CANCELLED;
+            loan.cancelled_reason = input.cancelled_reason;
             await manager.save(Loan, loan);
         });
     }
