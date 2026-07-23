@@ -105,9 +105,12 @@ export class DashboardService {
                 'COALESCE(SUM(detail.lost_fee), 0)',
                 'lost_book_revenue',
             )
-            .where('loan.status != :cancelledStatus', {
-                cancelledStatus: LoanStatus.CANCELLED,
-            });
+            .where('loan.status IN (:...statuses)', {
+                statuses: [
+                    LoanStatus.BORROWING,
+                    LoanStatus.COMPLETED,
+                ],
+            })
         this.applyLoanDateFilter(
             financialQuery,
             fromDate,
@@ -124,7 +127,7 @@ export class DashboardService {
             .where('loan.status IN (:...statuses)', {
                 statuses: [
                     LoanStatus.BORROWING,
-                    LoanStatus.COMPLETED,
+                    //LoanStatus.COMPLETED,
                 ],
             });
         const holdingDeposit = await holdingDepositQuery.getRawOne();
@@ -203,8 +206,11 @@ export class DashboardService {
                 'COALESCE(SUM(detail.quantity), 0)',
                 'borrowed_quantity',
             )
-            .where('loan.status != :cancelledStatus', {
-                cancelledStatus: LoanStatus.CANCELLED,
+            .where('loan.status IN (:...statuses)', {
+                statuses: [
+                    LoanStatus.BORROWING,
+                    LoanStatus.COMPLETED,
+                ],
             })
             .groupBy('book.id')
             .addGroupBy('book.title')
